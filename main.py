@@ -13,19 +13,21 @@ black = (115, 149, 82)
 gameWindow = None
 cell_dim = None
 bx, by = None, None
-board = None
-my_color = None
+board = [['' for i in range(8)] for j in range(8)]
+my_color = 'white'
+op_color = 'black'
+piece_selected = False
 
-def load_svg(filename, dim):
+def load_svg(filename):
     # Convert SVG to PNG using cairosvg
     svg_content = open(filename, 'rb').read()
-    png_content = cairosvg.svg2png(file_obj=BytesIO(svg_content), parent_width = dim, parent_height = dim)
+    png_content = cairosvg.svg2png(file_obj=BytesIO(svg_content), parent_width = cell_dim, parent_height = cell_dim)
 
     # Load the PNG content into a Pygame surface
     png_surface = pg.image.load(BytesIO(png_content))
 
     # Resize the Pygame surface
-    resized_surface = pg.transform.scale(png_surface, (dim, dim))
+    resized_surface = pg.transform.scale(png_surface, (cell_dim, cell_dim))
 
     return resized_surface
 
@@ -34,10 +36,10 @@ class Piece:
         self.color = color
         self.ptype = ptype
         self.path = path
+        self.resized_svg_surface = load_svg(self.path)
         
     def place(self, x, y):
-        resized_svg_surface = load_svg(self.path, cell_dim)
-        gameWindow.blit(resized_svg_surface, (bx + y*cell_dim, by + x*cell_dim))
+        gameWindow.blit(self.resized_svg_surface, (bx + y*cell_dim, by + x*cell_dim))
         
         
 class King(Piece):
@@ -66,7 +68,7 @@ class Pawn(Piece):
 
 def main():
     
-    global gameWindow, cell_dim, bx, by
+    global gameWindow, cell_dim, bx, by, board, piece_selected
     # Game window Dimensions
     width, height = 1200, 728
     
@@ -91,10 +93,10 @@ def main():
             if event.type == pg.QUIT:
                 game_over = True
             elif event.type == pg.MOUSEBUTTONDOWN:
-                print(event)
+                print("Debug", event.pos)
         gameWindow.fill(background)
         
-        # Create Chess board
+        # Create Chess board background
         cell_color = black
         
         for i in range(8):
@@ -108,44 +110,36 @@ def main():
                 cell_color = white
             else:
                 cell_color = black
+        
+        
+        # Initalize board first time
+        if board == [['' for i in range(8)] for j in range(8)]:
+            
+            # Place pieces of opposite color
+            board[0][0] = board[0][7] = Rook(op_color)
+            board[0][1] = board[0][6] = Knight(op_color)
+            board[0][2] = board[0][5] = Bishop(op_color)
+            board[0][3] = Queen(op_color)
+            board[0][4] = King(op_color)
+            
+            for i in range(8):
+                board[1][i] = Pawn(op_color)
                 
-        k = King('white')
-        k.place(0, 0)
-        
-        q = Queen('white')
-        q.place(0, 1)
-        
-        b = Bishop('white')
-        b.place(0, 2)
-        
-        n = Knight('white')
-        n.place(0, 3)
-        
-        r = Rook('white')
-        r.place(0, 4)
-        
-        p = Pawn('white')
-        p.place(0, 5)
-        
-        
-        k = King('black')
-        k.place(1, 0)
-        
-        q = Queen('black')
-        q.place(1, 1)
-        
-        b = Bishop('black')
-        b.place(1, 2)
-        
-        n = Knight('black')
-        n.place(1, 3)
-        
-        r = Rook('black')
-        r.place(1, 4)
-        
-        p = Pawn('black')
-        p.place(1, 5)
-                
+            # Place pieces of my side color
+            board[7][0] = board[7][7] = Rook(my_color)
+            board[7][1] = board[7][6] = Knight(my_color)
+            board[7][2] = board[7][5] = Bishop(my_color)
+            board[7][3] = Queen(my_color)
+            board[7][4] = King(my_color)
+            
+            for i in range(8):
+                board[6][i] = Pawn(my_color)
+            
+        # Place pieces
+        for i in range(8):
+            for j in range(8):
+                if board[i][j] != '':
+                    board[i][j].place(i, j)
         
         pg.display.update()
 
