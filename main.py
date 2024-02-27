@@ -13,7 +13,7 @@ black = (75, 115, 153)
 gameWindow = None
 cell_dim = None
 bx, by = None, None
-board = [['' for i in range(8)] for j in range(8)]
+board = None
 my_color = 'white'
 op_color = 'black'
 piece_selected = False
@@ -120,8 +120,8 @@ def main():
         
         
         # Initalize board first time
-        if board == [['' for i in range(8)] for j in range(8)]:
-            
+        if board == None:
+            board = [['' for i in range(8)] for j in range(8)]
             # Place pieces of opposite color
             board[0][0] = board[0][7] = Rook(op_color)
             board[0][1] = board[0][6] = Knight(op_color)
