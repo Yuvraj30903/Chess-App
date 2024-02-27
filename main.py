@@ -6,8 +6,8 @@ import threading
 
 # Colors
 background = (48, 46, 43)
-white = (235, 236, 208)
-black = (115, 149, 82)
+white = (234, 233, 210)
+black = (75, 115, 153)
 
 # Global Variables
 gameWindow = None
@@ -87,13 +87,20 @@ def main():
     # Game specific Variables
     game_over = False
     
+    # FPS
+    clock = pg.time.Clock()
+    fps = 30
+    
     # Game loop
     while not game_over:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 game_over = True
             elif event.type == pg.MOUSEBUTTONDOWN:
-                print("Debug", event.pos)
+                px = (event.pos[1] - by + cell_dim - 1) // cell_dim - 1
+                py = (event.pos[0] - bx + cell_dim - 1) // cell_dim - 1
+                print(px, py)
+                
         gameWindow.fill(background)
         
         # Create Chess board background
@@ -140,7 +147,8 @@ def main():
             for j in range(8):
                 if board[i][j] != '':
                     board[i][j].place(i, j)
-        
+                    
+        clock.tick(fps)
         pg.display.update()
 
 if __name__ == '__main__':
