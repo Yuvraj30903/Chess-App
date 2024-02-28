@@ -7,11 +7,17 @@ from time import sleep
 import sys
 from random import randint
 
+pg.init()
+# Initilization for Fonts in pygame
+font = pg.font.Font('freesansbold.ttf', 32)
+
 # Colors
 background = (48, 46, 43)
 white = (234, 233, 210)
 black = (75, 115, 153)
 green = (0, 255, 0)
+blue = (0, 0, 255)
+red = (255, 0, 0)
 
 # Global Variables
 gameWindow = None
@@ -309,6 +315,16 @@ def clear_valid_baord():
         for j in range(8):
             valid_moves_board[i][j] = False
     
+# function which renders text on screen
+def write(text, x, y):
+    global gameWindow
+    text = font.render(text, True, green, blue)
+    
+    textRect = text.get_rect()
+    textRect.center = (x, y)
+    
+    gameWindow.blit(text, textRect)
+    
 # Function for welcome screen
 def welcome():
     global gameWindow, my_color, op_color, my_turn
@@ -338,6 +354,8 @@ def welcome():
                     # threading.Thread(target=discover_servers).start()
                     main()
                     game_over = True
+        write("Create Game - Play White (Press C)", width//2, 200)
+        write("Join Game - Play Black (Press J)", width//2, 500)
                     
         clock.tick(fps)
         pg.display.update()
