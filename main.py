@@ -3,6 +3,9 @@ import cairosvg
 from io import BytesIO
 import socket     
 import threading
+from time import sleep
+import sys
+from random import randint
 
 # Colors
 background = (48, 46, 43)
@@ -19,6 +22,119 @@ valid_moves_board = None
 my_color = 'white'
 op_color = 'black'
 piece_selected = False
+
+# Stop all threads var
+stop_event = threading.Event()
+
+# Communication Variables
+sx, sy = -1, -1
+ex, ey = -1, -1
+
+def broadcast_server_ip():
+    global stop_event
+    while not stop_event.is_set():
+        server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        server.bind(('0.0.0.0', 37020))  # Broadcasting on port 37020
+
+        while not stop_event.is_set():
+            server_ip = socket.gethostbyname(socket.gethostname())
+            server.sendto(server_ip.encode('utf-8'), ('<broadcast>', 37020))
+            threading.Event().wait(5)  # Broadcast every 5 seconds
+        
+def handle_client(client_socket, address):
+    global sx, sy, ex, ey, stop_event
+    print("Hanfle")
+    while not stop_event.is_set():
+        try:
+            while not stop_event.is_set():
+                if sx != -1:
+                    print(sx, sy)
+                    data = str(sx)+str(sy)
+                    client_socket.send(data.encode('utf-8'))
+                    sx, sy = -1, -1
+                    data = client_socket.recv(1024)
+                    print(data)
+                # stdout.flush()
+                # cnt += 1
+                # if not data:
+                #     break
+                # print(data.decode())
+                # sleep(2)   
+        
+        except Exception as e:
+            print(f"Error handling client {address}: {e}")
+            break
+        finally:
+            client_socket.close()
+            break
+        
+def run_server():
+    global stop_event
+    threading.Thread(target=broadcast_server_ip).start()
+    flg = False
+    while not (flg or stop_event.is_set()):
+
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.bind(('0.0.0.0', 12345))
+        server.listen(1)
+        server.settimeout(10)
+
+        print("Server listening on port 12345...")
+
+        try:
+            while not stop_event.is_set():
+                client_socket, address = server.accept()
+                print(f"Accepted connection from {address}")
+                flg = True
+                if flg:
+                    break
+                # Start a new thread to handle the client
+            client_thread = threading.Thread(target=handle_client, args=(client_socket, address))
+            client_thread.start()
+        except socket.timeout:
+            print("Code expired. No player found. Quitting the game")
+        except KeyboardInterrupt:
+            print("Server shutting down.")
+        finally:
+            server.close()
+        
+def discover_servers():
+    global stop_event
+    while not stop_event.is_set():
+        client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        client.bind(('0.0.0.0', 37020))
+
+        print("Searching for nearby servers...")
+
+        try:
+            flag=True
+            while flag:
+                data, addr = client.recvfrom(1024)
+                server_ip = data.decode('utf-8')
+                print(f"Found nearby server: {server_ip}")
+                flag=False
+            print(server_ip)
+
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect((server_ip, 12345)) 
+
+            pt=0
+            while not stop_event.is_set(): 
+                message = str(pt)
+                pt+=1
+                data=client.recv(1024).decode('utf-8') 
+                print(f"recieved:{data}")
+
+                sleep(2)
+
+                client.send(message.encode('utf-8')) 
+
+
+        except KeyboardInterrupt:
+            print("Discovery stopped.")
 
 def valid_coordinate(x, y):
     return x >= 0 and x < 8 and y >= 0 and y < 8
@@ -162,10 +278,43 @@ class Pawn(Piece):
                 break
             moves.append([cx, cy])
         return moves
+    
+# Function for welcome screen
+
+def welcome():
+    global gameWindow, my_color, op_color
+    width, height = 1200, 728
+        
+    # Creating Board
+    gameWindow = pg.display.set_mode((width, height))
+    gameWindow.fill(white)
+    
+    clock = pg.time.Clock()
+    fps = 30
+    
+    game_over = False
+    while not game_over:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                game_over = True
+            elif event.type == pg.KEYDOWN:
+                if event.key == pg.K_c:
+                    threading.Thread(target=run_server).start()
+                    main()
+                    game_over = True
+                elif event.key == pg.K_j:
+                    my_color = 'black'
+                    op_color = 'white'
+                    threading.Thread(target=discover_servers).start()
+                    main()
+                    game_over = True
+                    
+        clock.tick(fps)
+        pg.display.update()
 
 def main():
     
-    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board
+    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event
     # Game window Dimensions
     width, height = 1200, 728
     
@@ -177,12 +326,34 @@ def main():
     # Base Co-ordinates for chess board
     bx, by = pad_x, pad_y
     
-    # Creating Board
-    gameWindow = pg.display.set_mode((width, height))
-    pg.display.set_caption('Chess Game')
-    
     # Game specific Variables
     game_over = False
+    
+    # Creating Board
+    gameWindow = pg.display.set_mode((width, height))
+    board = [['' for i in range(8)] for j in range(8)]
+            # Place pieces of opposite color
+    board[0][0] = board[0][7] = Rook(op_color)
+    board[0][1] = board[0][6] = Knight(op_color)
+    board[0][2] = board[0][5] = Bishop(op_color)
+    board[0][3] = Queen(op_color)
+    board[0][4] = King(op_color)
+    
+    for i in range(8):
+        board[1][i] = Pawn(op_color)
+        
+    # Place pieces of my side color
+    board[7][0] = board[7][7] = Rook(my_color)
+    board[7][1] = board[7][6] = Knight(my_color)
+    board[7][2] = board[7][5] = Bishop(my_color)
+    board[7][3] = Queen(my_color)
+    board[7][4] = King(my_color)
+    
+    valid_moves_board = [[False for i in range(8)] for _ in range(8)]
+    
+    for i in range(8):
+        board[6][i] = Pawn(my_color)
+    pg.display.set_caption('Chess Game')
     
     # FPS
     clock = pg.time.Clock()
@@ -193,6 +364,9 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 game_over = True
+                stop_event.set()
+                pg.quit()
+                sys.exit(0)
             elif event.type == pg.MOUSEBUTTONDOWN:
                 px = (event.pos[1] - by + cell_dim - 1) // cell_dim - 1
                 py = (event.pos[0] - bx + cell_dim - 1) // cell_dim - 1
@@ -200,9 +374,8 @@ def main():
                 if board[px][py] == '' or board[px][py].color != my_color:
                     continue
                 
+                sx, sy = px, py            
                 valid_moves = board[px][py].valid_moves(px, py)
-                
-                print(valid_moves)
                 
                 for i in range(8):
                     for j in range(8):
@@ -227,34 +400,6 @@ def main():
                 cell_color = white
             else:
                 cell_color = black
-        
-        
-        # Initalize board first time
-        if board == None:
-            board = [['' for i in range(8)] for j in range(8)]
-            # Place pieces of opposite color
-            board[0][0] = board[0][7] = Rook(op_color)
-            board[0][1] = board[0][6] = Knight(op_color)
-            board[0][2] = board[0][5] = Bishop(op_color)
-            board[0][3] = Queen(op_color)
-            board[0][4] = King(op_color)
-            
-            for i in range(8):
-                board[1][i] = Pawn(op_color)
-                
-            # Place pieces of my side color
-            board[7][0] = board[7][7] = Rook(my_color)
-            board[7][1] = board[7][6] = Knight(my_color)
-            board[7][2] = board[7][5] = Bishop(my_color)
-            board[7][3] = Queen(my_color)
-            board[7][4] = King(my_color)
-            
-            
-            for i in range(8):
-                board[6][i] = Pawn(my_color)
-        
-        if valid_moves_board == None:
-            valid_moves_board = [[False for i in range(8)] for _ in range(8)]
             
         # Place pieces
         for i in range(8):
@@ -272,4 +417,4 @@ def main():
         
 
 if __name__ == '__main__':
-    main()
+    welcome()
