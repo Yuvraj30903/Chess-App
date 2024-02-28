@@ -22,6 +22,7 @@ valid_moves_board = None
 my_color = 'white'
 op_color = 'black'
 piece_selected = False
+my_turn = True
 
 # Stop all threads var
 stop_event = threading.Event()
@@ -156,6 +157,9 @@ class Piece:
     def place(self, x, y):
         gameWindow.blit(self.resized_svg_surface, (bx + y*cell_dim, by + x*cell_dim))
         
+    def place_transition(self, x, y):
+        gameWindow.blit(self.resized_svg_surface, (x,y))
+        
         
 class King(Piece):
     def __init__(self, color):
@@ -272,11 +276,42 @@ class Pawn(Piece):
                 break
             moves.append([cx, cy])
         return moves
+
+# Transition Logic
+def generate_equal_parts(x1, y1, x2, y2, num_parts=10):
+    # Calculate step sizes for x and y coordinates
+    step_x = (x2 - x1) / (num_parts - 1)
+    step_y = (y2 - y1) / (num_parts - 1)
+
+    # Generate the 10 equally spaced points
+    points = [(int(x1 + i * step_x), int(y1 + i * step_y)) for i in range(num_parts)]
+
+    return points
+
+# Function to move piece from one cell to another
+def move_piece():
+    global sx, sy, ex, ey
+    s_x, s_y = bx + sy*cell_dim, by + sx*cell_dim 
+    e_x, e_y = bx + ey*cell_dim, by + ex*cell_dim
+    # print(px,py,fx,fy)
+    # print(dx,dy)
+    moves=generate_equal_parts(s_x, s_y, e_x, e_y)
+    for i in range(1,len(moves)): 
+        board[sx][sy].place_transition(moves[i][0],moves[i][1]) 
+        pg.display.update()
+        pass
+    board[ex][ey]=board[sx][sy]
+    board[sx][sy]=''
+    
+def clear_valid_baord():
+    global valid_moves_board
+    for i in range(8):
+        for j in range(8):
+            valid_moves_board[i][j] = False
     
 # Function for welcome screen
-
 def welcome():
-    global gameWindow, my_color, op_color
+    global gameWindow, my_color, op_color, my_turn
     width, height = 1200, 728
         
     # Creating Board
@@ -293,13 +328,14 @@ def welcome():
                 game_over = True
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_c:
-                    threading.Thread(target=run_server).start()
+                    # threading.Thread(target=run_server).start()
                     main()
                     game_over = True
                 elif event.key == pg.K_j:
                     my_color = 'black'
                     op_color = 'white'
-                    threading.Thread(target=discover_servers).start()
+                    my_turn = False
+                    # threading.Thread(target=discover_servers).start()
                     main()
                     game_over = True
                     
@@ -362,21 +398,33 @@ def main():
                 pg.quit()
                 sys.exit(0)
             elif event.type == pg.MOUSEBUTTONDOWN:
+                    
                 px = (event.pos[1] - by + cell_dim - 1) // cell_dim - 1
                 py = (event.pos[0] - bx + cell_dim - 1) // cell_dim - 1
                 
-                if board[px][py] == '' or board[px][py].color != my_color:
+                if not my_turn:
                     continue
                 
-                sx, sy = px, py            
-                valid_moves = board[px][py].valid_moves(px, py)
+                if not valid_coordinate(px, py):
+                    continue
                 
-                for i in range(8):
-                    for j in range(8):
-                        valid_moves_board[i][j] = False
-                        
-                for move in valid_moves:
-                    valid_moves_board[move[0]][move[1]] = True
+                if board[px][py] == '' and not valid_moves_board[px][py]:
+                    continue
+                
+                if (board[px][py] == '' or board[px][py].color != my_color) and valid_moves_board[px][py]:
+                    ex, ey = px, py
+                    move_piece()
+                    clear_valid_baord()
+                
+                elif board[px][py].color == my_color:
+                    sx, sy = px, py    
+                    valid_moves = board[px][py].valid_moves(px, py)
+                    
+                    clear_valid_baord()
+                            
+                    for move in valid_moves:
+                        valid_moves_board[move[0]][move[1]] = True
+                
                 
         gameWindow.fill(background)
         
