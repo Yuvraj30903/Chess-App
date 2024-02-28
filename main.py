@@ -54,7 +54,7 @@ def handle_client(client_socket, address):
                     client_socket.send(data.encode('utf-8'))
                     sx, sy = -1, -1
                     data = client_socket.recv(1024)
-                    print(data) 
+                    print(data.decode()) 
         
         except Exception as e:
             print(f"Error handling client {address}: {e}")
@@ -119,20 +119,12 @@ def discover_servers():
             while not stop_event.is_set(): 
                 data = client.recv(1024)
                 print(data.decode()) 
-                while sx != -1:
+                while sx == -1:
                     pass
                 data = str(sx)+str(sy)
                 client.send(data.encode('utf-8'))
                 print(sx, sy)
                 sx, sy = -1, -1
-                # message = str(pt)
-                # pt+=1
-                # data=client.recv(1024).decode('utf-8') 
-                # print(f"recieved:{data}")
-
-                # sleep(2)
-
-                # client.send(message.encode('utf-8')) 
 
 
         except KeyboardInterrupt:
