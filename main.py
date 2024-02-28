@@ -8,15 +8,20 @@ import threading
 background = (48, 46, 43)
 white = (234, 233, 210)
 black = (75, 115, 153)
+green = (0, 255, 0)
 
 # Global Variables
 gameWindow = None
 cell_dim = None
 bx, by = None, None
 board = None
+valid_moves_board = None
 my_color = 'white'
 op_color = 'black'
 piece_selected = False
+
+def valid_coordinate(x, y):
+    return x >= 0 and x < 8 and y >= 0 and y < 8
 
 def load_svg(filename):
     # Convert SVG to PNG using cairosvg
@@ -45,30 +50,122 @@ class Piece:
 class King(Piece):
     def __init__(self, color):
         super().__init__(color, 'k', f'src/k-{color}.svg')
+        self.dir = [[1, 1], [1, -1], [-1, -1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]
+        
+    def valid_moves(self, x, y):
+        moves = []
+        for i in range(8):
+            dx, dy = self.dir[i][0], self.dir[i][1]
+            cx = x + dx
+            cy = y + dy
+            if valid_coordinate(cx, cy):
+                if board[cx][cy] == '' or board[cx][cy].color == op_color:
+                    moves.append([cx, cy])
+        return moves
 
 class Queen(Piece):
     def __init__(self, color):
         super().__init__(color, 'q', f'src/q-{color}.svg')
+        self.dir = [[1, 1], [1, -1], [-1, -1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]
+        
+    def valid_moves(self, x, y):
+        moves = []
+        for i in range(8):
+            dx, dy = self.dir[i][0], self.dir[i][1]
+            cx = x + dx
+            cy = y + dy
+            while valid_coordinate(cx, cy):
+                if board[cx][cy] != '':
+                    if board[cx][cy].color == op_color:
+                        moves.append([cx, cy])
+                    break
+                moves.append([cx, cy])
+                cx += dx
+                cy += dy
+        return moves
         
 class Bishop(Piece):
     def __init__(self, color):
         super().__init__(color, 'b', f'src/b-{color}.svg')
+        self.dir = [[1, 1], [1, -1], [-1, -1], [-1, 1]]
+    
+    def valid_moves(self, x, y):
+        moves = []
+        for i in range(4):
+            dx, dy = self.dir[i][0], self.dir[i][1]
+            cx = x + dx
+            cy = y + dy
+            while valid_coordinate(cx, cy):
+                if board[cx][cy] != '':
+                    if board[cx][cy].color == op_color:
+                        moves.append([cx, cy])
+                    break
+                moves.append([cx, cy])
+                cx += dx
+                cy += dy
+        return moves
         
 class Knight(Piece):
     def __init__(self, color):
         super().__init__(color, 'n', f'src/n-{color}.svg')
+        self.dir = [
+            [1, -2], [1, 2],
+            [-1, -2], [-1, 2],
+            [2, 1], [2, -1],
+            [-2, 1], [-2, -1]
+        ]
+        
+    def valid_moves(self, x, y):
+        moves = []
+        for i in range(8):
+            cx, cy = x + self.dir[i][0], y + self.dir[i][1]
+            print(cx, cy)
+            if valid_coordinate(cx, cy) and (board[cx][cy] == '' or board[cx][cy].color == op_color):
+                moves.append([cx, cy])
+        return moves
+        
         
 class Rook(Piece):
     def __init__(self, color):
         super().__init__(color, 'r', f'src/r-{color}.svg')
+        self.dir = [[0, 1], [0, -1], [1, 0], [-1, 0]]
+        
+    def valid_moves(self, x, y):
+        moves = []
+        for i in range(4):
+            dx, dy = self.dir[i][0], self.dir[i][1]
+            cx = x + dx
+            cy = y + dy
+            while valid_coordinate(cx, cy):
+                if board[cx][cy] != '':
+                    if board[cx][cy].color == op_color:
+                        moves.append([cx, cy])
+                    break
+                moves.append([cx, cy])
+                cx += dx
+                cy += dy
+        return moves
         
 class Pawn(Piece):
     def __init__(self, color):
         super().__init__(color, 'p', f'src/p-{color}.svg')
+        
+    def valid_moves(self, x, y):
+        moves = []
+        for i in range(1, 3):
+            cx, cy = x-i, y
+            if not valid_coordinate(cx, cy):
+                break
+            if board[cx][cy] != '':
+                if board[cx][cy].color == op_color:
+                    moves.append([cx, cy])
+                break
+            moves.append([cx, cy])
+        return moves
 
 def main():
     
-    global gameWindow, cell_dim, bx, by, board, piece_selected
+    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board
     # Game window Dimensions
     width, height = 1200, 728
     
@@ -99,7 +196,20 @@ def main():
             elif event.type == pg.MOUSEBUTTONDOWN:
                 px = (event.pos[1] - by + cell_dim - 1) // cell_dim - 1
                 py = (event.pos[0] - bx + cell_dim - 1) // cell_dim - 1
-                print(px, py)
+                
+                if board[px][py] == '' or board[px][py].color != my_color:
+                    continue
+                
+                valid_moves = board[px][py].valid_moves(px, py)
+                
+                print(valid_moves)
+                
+                for i in range(8):
+                    for j in range(8):
+                        valid_moves_board[i][j] = False
+                        
+                for move in valid_moves:
+                    valid_moves_board[move[0]][move[1]] = True
                 
         gameWindow.fill(background)
         
@@ -139,8 +249,12 @@ def main():
             board[7][3] = Queen(my_color)
             board[7][4] = King(my_color)
             
+            
             for i in range(8):
                 board[6][i] = Pawn(my_color)
+        
+        if valid_moves_board == None:
+            valid_moves_board = [[False for i in range(8)] for _ in range(8)]
             
         # Place pieces
         for i in range(8):
@@ -148,8 +262,14 @@ def main():
                 if board[i][j] != '':
                     board[i][j].place(i, j)
                     
+        for i in range(8):
+            for j in range(8):
+                if valid_moves_board[i][j]:
+                    pg.draw.circle(gameWindow, green, (bx + j*cell_dim + cell_dim//2, by + i*cell_dim + cell_dim//2), 10)
+                    
         clock.tick(fps)
         pg.display.update()
+        
 
 if __name__ == '__main__':
     main()
