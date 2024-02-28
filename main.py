@@ -3,13 +3,19 @@ import cairosvg
 from io import BytesIO
 import socket     
 import threading
-from time import sleep
+import os
 import sys
-from random import randint
+
 
 pg.init()
 # Initilization for Fonts in pygame
 font = pg.font.Font('freesansbold.ttf', 32)
+
+# Path for exe conversion
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 # Colors
 background = (48, 46, 43)
@@ -157,7 +163,7 @@ class Piece:
     def __init__(self, color, ptype, path):
         self.color = color
         self.ptype = ptype
-        self.path = path
+        self.path = resource_path(path)
         self.resized_svg_surface = load_svg(self.path)
         
     def place(self, x, y):
