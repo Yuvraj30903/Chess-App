@@ -45,7 +45,6 @@ def broadcast_server_ip():
         
 def handle_client(client_socket, address):
     global sx, sy, ex, ey, stop_event
-    print("Hanfle")
     while not stop_event.is_set():
         try:
             while not stop_event.is_set():
@@ -55,13 +54,7 @@ def handle_client(client_socket, address):
                     client_socket.send(data.encode('utf-8'))
                     sx, sy = -1, -1
                     data = client_socket.recv(1024)
-                    print(data)
-                # stdout.flush()
-                # cnt += 1
-                # if not data:
-                #     break
-                # print(data.decode())
-                # sleep(2)   
+                    print(data) 
         
         except Exception as e:
             print(f"Error handling client {address}: {e}")
@@ -101,8 +94,9 @@ def run_server():
             server.close()
         
 def discover_servers():
-    global stop_event
-    while not stop_event.is_set():
+    global sx, sy, ex, ey, stop_event
+    flg = False
+    while not (flg or stop_event.is_set()):
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         client.bind(('0.0.0.0', 37020))
@@ -123,14 +117,22 @@ def discover_servers():
 
             pt=0
             while not stop_event.is_set(): 
-                message = str(pt)
-                pt+=1
-                data=client.recv(1024).decode('utf-8') 
-                print(f"recieved:{data}")
+                data = client.recv(1024)
+                print(data.decode()) 
+                while sx != -1:
+                    pass
+                data = str(sx)+str(sy)
+                client.send(data.encode('utf-8'))
+                print(sx, sy)
+                sx, sy = -1, -1
+                # message = str(pt)
+                # pt+=1
+                # data=client.recv(1024).decode('utf-8') 
+                # print(f"recieved:{data}")
 
-                sleep(2)
+                # sleep(2)
 
-                client.send(message.encode('utf-8')) 
+                # client.send(message.encode('utf-8')) 
 
 
         except KeyboardInterrupt:
