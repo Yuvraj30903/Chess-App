@@ -67,6 +67,10 @@ def handle_client(client_socket, address):
                     my_turn = False
                     data = client_socket.recv(1024)
                     my_turn = True
+                    updates = data.decode()
+                    # Update start x,y end x,y
+                    usx, usy, uex, uey = map(int, updates)
+                    move_piece_from_opponent(usx, usy, uex, uey)
                     print(data.decode()) 
                     
         
@@ -132,6 +136,10 @@ def discover_servers():
             while not stop_event.is_set(): 
                 data = client.recv(1024)
                 my_turn = True
+                updates = data.decode()
+                    # Update start x,y end x,y
+                usx, usy, uex, uey = map(int, updates)
+                move_piece_from_opponent(usx, usy, uex, uey)
                 
                 print(data.decode()) 
                 while sx == -1 or ex == -1:
@@ -289,33 +297,24 @@ class Pawn(Piece):
             moves.append([cx, cy])
         return moves
 
-# Transition Logic
-def generate_equal_parts(x1, y1, x2, y2, num_parts=10):
-    # Calculate step sizes for x and y coordinates
-    step_x = (x2 - x1) / (num_parts - 1)
-    step_y = (y2 - y1) / (num_parts - 1)
-
-    # Generate the 10 equally spaced points
-    points = [(int(x1 + i * step_x), int(y1 + i * step_y)) for i in range(num_parts)]
-
-    return points
-
 # Function to move piece from one cell to another
 def move_piece():
     global sx, sy, ex, ey
     if sx == -1 or sy == -1 or ex == -1 or ey == -1:
         return
     print(sx, sy, ex, ey)
-    s_x, s_y = bx + sy*cell_dim, by + sx*cell_dim 
-    e_x, e_y = bx + ey*cell_dim, by + ex*cell_dim
-    moves = generate_equal_parts(s_x, s_y, e_x, e_y)
-    for i in range(1,len(moves)):
-        board[sx][sy].place_transition(moves[i][0],moves[i][1]) 
-        pg.display.update()
-        pass
     board[ex][ey]=board[sx][sy]
     board[sx][sy]=''
     sx, sy, ex, ey = -1, -1, -1, -1
+    
+# Function to move piece from signal of opponents
+def move_piece_from_opponent(sx, sy, ex, ey):
+    sx = 7-sx
+    sy = 7-sy
+    ex = 7-ex
+    ey = 7-ey
+    board[ex][ey]=board[sx][sy]
+    board[sx][sy]=''
     
 def clear_valid_baord():
     global valid_moves_board
@@ -394,7 +393,10 @@ def main():
     board[0][2] = board[0][5] = Bishop(op_color)
     board[0][3] = Queen(op_color)
     board[0][4] = King(op_color)
-    
+    if my_color == 'black':
+        board[0][4] = Queen(op_color)
+        board[0][3] = King(op_color)
+        
     for i in range(8):
         board[1][i] = Pawn(op_color)
         
@@ -404,6 +406,9 @@ def main():
     board[7][2] = board[7][5] = Bishop(my_color)
     board[7][3] = Queen(my_color)
     board[7][4] = King(my_color)
+    if my_color == 'black':
+        board[7][4] = Queen(my_color)
+        board[7][3] = King(my_color)
     
     valid_moves_board = [[False for i in range(8)] for _ in range(8)]
     
