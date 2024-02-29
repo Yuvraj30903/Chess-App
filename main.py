@@ -57,17 +57,18 @@ def broadcast_server_ip():
             threading.Event().wait(5)  # Broadcast every 5 seconds
         
 def handle_client(client_socket, address):
-    global sx, sy, ex, ey, stop_event
+    global sx, sy, ex, ey, stop_event, my_turn
     while not stop_event.is_set():
         try:
             while not stop_event.is_set():
-                if sx != -1:
-                    print(sx, sy)
-                    data = str(sx)+str(sy)
+                if sx != -1 and ex != -1:
+                    data = str(sx)+str(sy)+str(ex)+str(ey)
                     client_socket.send(data.encode('utf-8'))
-                    sx, sy = -1, -1
+                    my_turn = False
                     data = client_socket.recv(1024)
+                    my_turn = True
                     print(data.decode()) 
+                    
         
         except Exception as e:
             print(f"Error handling client {address}: {e}")
@@ -107,7 +108,7 @@ def run_server():
             server.close()
         
 def discover_servers():
-    global sx, sy, ex, ey, stop_event
+    global sx, sy, ex, ey, stop_event, my_turn
     flg = False
     while not (flg or stop_event.is_set()):
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -128,16 +129,16 @@ def discover_servers():
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client.connect((server_ip, 12345)) 
 
-            pt=0
             while not stop_event.is_set(): 
                 data = client.recv(1024)
+                my_turn = True
+                
                 print(data.decode()) 
-                while sx == -1:
+                while sx == -1 or ex == -1:
                     pass
-                data = str(sx)+str(sy)
+                data = str(sx)+str(sy)+str(ex)+str(ey)
                 client.send(data.encode('utf-8'))
-                print(sx, sy)
-                sx, sy = -1, -1
+                my_turn = False
 
 
         except KeyboardInterrupt:
@@ -245,7 +246,6 @@ class Knight(Piece):
         moves = []
         for i in range(8):
             cx, cy = x + self.dir[i][0], y + self.dir[i][1]
-            print(cx, cy)
             if valid_coordinate(cx, cy) and (board[cx][cy] == '' or board[cx][cy].color == op_color):
                 moves.append([cx, cy])
         return moves
@@ -303,17 +303,19 @@ def generate_equal_parts(x1, y1, x2, y2, num_parts=10):
 # Function to move piece from one cell to another
 def move_piece():
     global sx, sy, ex, ey
+    if sx == -1 or sy == -1 or ex == -1 or ey == -1:
+        return
+    print(sx, sy, ex, ey)
     s_x, s_y = bx + sy*cell_dim, by + sx*cell_dim 
     e_x, e_y = bx + ey*cell_dim, by + ex*cell_dim
-    # print(px,py,fx,fy)
-    # print(dx,dy)
-    moves=generate_equal_parts(s_x, s_y, e_x, e_y)
-    for i in range(1,len(moves)): 
+    moves = generate_equal_parts(s_x, s_y, e_x, e_y)
+    for i in range(1,len(moves)):
         board[sx][sy].place_transition(moves[i][0],moves[i][1]) 
         pg.display.update()
         pass
     board[ex][ey]=board[sx][sy]
     board[sx][sy]=''
+    sx, sy, ex, ey = -1, -1, -1, -1
     
 def clear_valid_baord():
     global valid_moves_board
@@ -350,14 +352,14 @@ def welcome():
                 game_over = True
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_c:
-                    # threading.Thread(target=run_server).start()
+                    threading.Thread(target=run_server).start()
                     main()
                     game_over = True
                 elif event.key == pg.K_j:
                     my_color = 'black'
                     op_color = 'white'
                     my_turn = False
-                    # threading.Thread(target=discover_servers).start()
+                    threading.Thread(target=discover_servers).start()
                     main()
                     game_over = True
         write("Create Game - Play White (Press C)", width//2, 200)
@@ -423,11 +425,12 @@ def main():
                 sys.exit(0)
             elif event.type == pg.MOUSEBUTTONDOWN:
                     
+                if not my_turn:
+                    continue
+                
                 px = (event.pos[1] - by + cell_dim - 1) // cell_dim - 1
                 py = (event.pos[0] - bx + cell_dim - 1) // cell_dim - 1
                 
-                if not my_turn:
-                    continue
                 
                 if not valid_coordinate(px, py):
                     continue
@@ -436,13 +439,17 @@ def main():
                     continue
                 
                 if (board[px][py] == '' or board[px][py].color != my_color) and valid_moves_board[px][py]:
+                    if sx < 0:
+                        continue
                     ex, ey = px, py
+                    print("1: ", sx, sy, ex, ey)
                     move_piece()
                     clear_valid_baord()
                 
                 elif board[px][py].color == my_color:
                     sx, sy = px, py    
                     valid_moves = board[px][py].valid_moves(px, py)
+                    print("2: ", sx, sy, ex, ey)
                     
                     clear_valid_baord()
                             
