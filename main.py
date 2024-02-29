@@ -5,6 +5,7 @@ import socket
 import threading
 import os
 import sys
+from random import randint
 
 
 pg.init()
@@ -35,6 +36,9 @@ my_color = 'white'
 op_color = 'black'
 piece_selected = False
 my_turn = True
+port = randint(10000, 40000)
+
+is_joined = False
 
 # Stop all threads var
 stop_event = threading.Event()
@@ -82,13 +86,13 @@ def handle_client(client_socket, address):
             break
         
 def run_server():
-    global stop_event
+    global stop_event, is_joined
     threading.Thread(target=broadcast_server_ip).start()
     flg = False
     while not (flg or stop_event.is_set()):
 
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind(('0.0.0.0', 12345))
+        server.bind(('0.0.0.0', port))
         server.listen(1)
         server.settimeout(10)
 
@@ -98,6 +102,7 @@ def run_server():
             while not stop_event.is_set():
                 client_socket, address = server.accept()
                 print(f"Accepted connection from {address}")
+                is_joined = True
                 flg = True
                 if flg:
                     break
@@ -112,13 +117,12 @@ def run_server():
             server.close()
         
 def discover_servers():
-    global sx, sy, ex, ey, stop_event, my_turn
+    global sx, sy, ex, ey, stop_event, my_turn, is_joined
     flg = False
     while not (flg or stop_event.is_set()):
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         client.bind(('0.0.0.0', 37020))
-
         print("Searching for nearby servers...")
 
         try:
@@ -131,7 +135,13 @@ def discover_servers():
             print(server_ip)
 
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect((server_ip, 12345)) 
+            while True:
+                try:
+                    client.connect((server_ip, port)) 
+                    is_joined = True
+                    break
+                except:
+                    pass
 
             while not stop_event.is_set(): 
                 data = client.recv(1024)
@@ -332,6 +342,62 @@ def write(text, x, y):
     
     gameWindow.blit(text, textRect)
     
+def middle_screen_create():
+    global gameWindow, is_joined
+    width, height = 1200, 728
+    gameWindow = pg.display.set_mode((width, height))
+    gameWindow.fill(white)
+    
+    clock = pg.time.Clock()
+    fps = 30
+         
+    while not is_joined:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                is_joined = True
+                stop_event.set()
+                pg.quit()
+                exit()
+        write("Waiting for joining", width//2,300)
+        write(str(port), width//2, 500)
+        clock.tick(fps)
+        pg.display.update()
+
+def middle_screen_join():
+    global gameWindow, is_joined, port
+    width, height = 1200, 728
+    gameWindow = pg.display.set_mode((width, height))
+    gameWindow.fill(white)
+    
+    clock = pg.time.Clock()
+    fps = 30
+    
+    code = ''
+         
+    while not is_joined:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                is_joined = True
+                stop_event.set()
+                pg.quit()
+                exit()
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_RETURN:
+                    port = int(code)
+                elif event.key == pg.K_BACKSPACE:
+                    code = code[:-1]
+                else:
+                    code += event.unicode
+                    
+        gameWindow.fill(white)
+        write("Enter code", width//2, 200)
+        if len(code):
+            write(code, width//2, 500)
+        else:
+            write('  ', width//2, 500)
+        clock.tick(fps)
+        pg.display.update()
+    
 # Function for welcome screen
 def welcome():
     global gameWindow, my_color, op_color, my_turn
@@ -352,6 +418,7 @@ def welcome():
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_c:
                     threading.Thread(target=run_server).start()
+                    middle_screen_create()
                     main()
                     game_over = True
                 elif event.key == pg.K_j:
@@ -359,6 +426,7 @@ def welcome():
                     op_color = 'white'
                     my_turn = False
                     threading.Thread(target=discover_servers).start()
+                    middle_screen_join()
                     main()
                     game_over = True
         write("Create Game - Play White (Press C)", width//2, 200)
@@ -492,7 +560,7 @@ def main():
                     
         clock.tick(fps)
         pg.display.update()
-        
+
 
 if __name__ == '__main__':
     welcome()
