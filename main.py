@@ -86,7 +86,7 @@ def handle_client(client_socket, address):
             break
         
 def run_server():
-    global stop_event, is_joined
+    global stop_event, is_joined, port
     threading.Thread(target=broadcast_server_ip).start()
     flg = False
     while not (flg or stop_event.is_set()):
@@ -117,12 +117,12 @@ def run_server():
             server.close()
         
 def discover_servers():
-    global sx, sy, ex, ey, stop_event, my_turn, is_joined
+    global sx, sy, ex, ey, stop_event, my_turn, is_joined, port
     flg = False
     while not (flg or stop_event.is_set()):
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        client.bind(('0.0.0.0', 37020))
+        client.bind(('0.0.0.0', 37021))
         print("Searching for nearby servers...")
 
         try:
@@ -141,7 +141,7 @@ def discover_servers():
                     is_joined = True
                     break
                 except:
-                    pass
+                    print("err")
 
             while not stop_event.is_set(): 
                 data = client.recv(1024)
@@ -357,7 +357,7 @@ def middle_screen_create():
                 is_joined = True
                 stop_event.set()
                 pg.quit()
-                exit()
+                sys.exit(0)
         write("Waiting for joining", width//2,300)
         write(str(port), width//2, 500)
         clock.tick(fps)
@@ -380,7 +380,7 @@ def middle_screen_join():
                 is_joined = True
                 stop_event.set()
                 pg.quit()
-                exit()
+                sys.exit()
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_RETURN:
                     port = int(code)
@@ -407,6 +407,10 @@ def welcome():
     gameWindow = pg.display.set_mode((width, height))
     gameWindow.fill(white)
     
+    # Background Image
+    bg_img = pg.image.load(resource_path('chess-bg.png'))
+    bg_img = pg.transform.scale(bg_img,(width,height))
+    
     clock = pg.time.Clock()
     fps = 30
     
@@ -429,6 +433,7 @@ def welcome():
                     middle_screen_join()
                     main()
                     game_over = True
+        gameWindow.blit(bg_img, (0, 0))
         write("Create Game - Play White (Press C)", width//2, 200)
         write("Join Game - Play Black (Press J)", width//2, 500)
                     
