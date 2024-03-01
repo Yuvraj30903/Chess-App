@@ -6,6 +6,7 @@ import threading
 import os
 import sys
 
+
 pg.init()
 # Initilization for Fonts in pygame
 font = pg.font.Font('freesansbold.ttf', 32)
