@@ -5,8 +5,6 @@ import socket
 import threading
 import os
 import sys
-from random import randint
-
 
 pg.init()
 # Initilization for Fonts in pygame
@@ -36,20 +34,20 @@ my_color = 'white'
 op_color = 'black'
 piece_selected = False
 my_turn = True
-port = randint(10000, 40000)
-
+port = 12345
 is_joined = False
 
 # Stop all threads var
 stop_event = threading.Event()
+stop_broadcast = threading.Event()
 
 # Communication Variables
 sx, sy = -1, -1
 ex, ey = -1, -1
 
 def broadcast_server_ip():
-    global stop_event
-    while not stop_event.is_set():
+    global stop_event, stop_broadcast
+    while not (stop_event.is_set() or stop_broadcast.is_set()):
         server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -86,7 +84,7 @@ def handle_client(client_socket, address):
             break
         
 def run_server():
-    global stop_event, is_joined
+    global stop_event, is_joined, stop_broadcast
     threading.Thread(target=broadcast_server_ip).start()
     flg = False
     while not (flg or stop_event.is_set()):
@@ -94,7 +92,7 @@ def run_server():
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.bind(('0.0.0.0', port))
         server.listen(1)
-        server.settimeout(10)
+        server.settimeout(100)
 
         print("Server listening on port 12345...")
 
@@ -102,6 +100,7 @@ def run_server():
             while not stop_event.is_set():
                 client_socket, address = server.accept()
                 print(f"Accepted connection from {address}")
+                stop_broadcast.set()
                 is_joined = True
                 flg = True
                 if flg:
@@ -351,6 +350,7 @@ def middle_screen_create():
     clock = pg.time.Clock()
     fps = 30
          
+    write("Waiting for a player to join", width//2, height//2)
     while not is_joined:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -358,10 +358,9 @@ def middle_screen_create():
                 stop_event.set()
                 pg.quit()
                 exit()
-        write("Waiting for joining", width//2,300)
-        write(str(port), width//2, 500)
         clock.tick(fps)
         pg.display.update()
+    pg.quit()
 
 def middle_screen_join():
     global gameWindow, is_joined, port
@@ -372,8 +371,8 @@ def middle_screen_join():
     clock = pg.time.Clock()
     fps = 30
     
-    code = ''
-         
+    write("Finding Nearby Game", width//2, height//2)
+             
     while not is_joined:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -381,22 +380,9 @@ def middle_screen_join():
                 stop_event.set()
                 pg.quit()
                 exit()
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_RETURN:
-                    port = int(code)
-                elif event.key == pg.K_BACKSPACE:
-                    code = code[:-1]
-                else:
-                    code += event.unicode
-                    
-        gameWindow.fill(white)
-        write("Enter code", width//2, 200)
-        if len(code):
-            write(code, width//2, 500)
-        else:
-            write('  ', width//2, 500)
         clock.tick(fps)
         pg.display.update()
+    pg.quit()
     
 # Function for welcome screen
 def welcome():
