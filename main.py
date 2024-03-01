@@ -137,7 +137,7 @@ def discover_servers():
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             while True:
                 try:
-                    client.connect((server_ip, port)) 
+                    client.connect((server_ip, port))
                     is_joined = True
                     break
                 except:
