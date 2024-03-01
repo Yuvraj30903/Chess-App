@@ -31,12 +31,14 @@ cell_dim = None
 bx, by = None, None
 board = None
 valid_moves_board = None
+opp_valid_moves = None
 my_color = 'white'
 op_color = 'black'
 piece_selected = False
 my_turn = True
 port = 12345
 is_joined = False
+
 
 # Stop all threads var
 stop_event = threading.Event()
@@ -198,13 +200,14 @@ class King(Piece):
         self.dir = [[1, 1], [1, -1], [-1, -1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]
         
     def valid_moves(self, x, y):
+        global opp_valid_moves
         moves = []
         for i in range(8):
             dx, dy = self.dir[i][0], self.dir[i][1]
             cx = x + dx
             cy = y + dy
             if valid_coordinate(cx, cy):
-                if board[cx][cy] == '' or board[cx][cy].color == op_color:
+                if board[cx][cy] == '' or board[cx][cy].color == op_color and opp_valid_moves[cx][cy] == False:
                     moves.append([cx, cy])
         return moves
 
@@ -295,16 +298,23 @@ class Pawn(Piece):
         super().__init__(color, 'p', f'src/p-{color}.svg')
         
     def valid_moves(self, x, y):
+        global opp_valid_moves
         moves = []
-        for i in range(1, 3):
-            cx, cy = x-i, y
-            if not valid_coordinate(cx, cy):
-                break
-            if board[cx][cy] != '':
-                if board[cx][cy].color == op_color:
-                    moves.append([cx, cy])
-                break
-            moves.append([cx, cy])
+        if x == 6:
+            for i in range(5, 3, -1):
+                if board[i][y] == '':
+                    moves.append([i, y])
+                else:
+                    break
+        else:
+            if board[x-1][y] == '':
+                moves.append([x-1, y])
+                
+        if valid_coordinate(x-1, y-1) and board[x-1][y-1] != '' and board[x-1][y-1].color == op_color:
+            moves.append([x-1, y-1])
+        if valid_coordinate(x-1, y+1) and board[x-1][y+1] != '' and board[x-1][y+1].color == op_color:
+            moves.append([x-1, y+1])
+            
         return moves
 
 # Function to move piece from one cell to another
@@ -424,7 +434,7 @@ def welcome():
 
 def main():
     
-    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event
+    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves
     # Game window Dimensions
     width, height = 1200, 728
     
@@ -442,7 +452,10 @@ def main():
     # Creating Board
     gameWindow = pg.display.set_mode((width, height))
     board = [['' for i in range(8)] for j in range(8)]
-            # Place pieces of opposite color
+    
+    opp_valid_moves = [[False for _ in range(8)]*8]
+    
+    # Place pieces of opposite color
     board[0][0] = board[0][7] = Rook(op_color)
     board[0][1] = board[0][6] = Knight(op_color)
     board[0][2] = board[0][5] = Bishop(op_color)
@@ -539,6 +552,10 @@ def main():
             for j in range(8):
                 if board[i][j] != '':
                     board[i][j].place(i, j)
+                    if board[i][j].color == op_color and board[i][j].ptype != 'k':
+                        lis = board[i][j].valid_moves(i, j)
+                        for move in lis:
+                            opp_valid_moves[move[0]][move[1]] = True
                     
         for i in range(8):
             for j in range(8):
