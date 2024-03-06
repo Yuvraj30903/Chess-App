@@ -25,7 +25,7 @@ green = (0, 255, 0)
 blue = (0, 0, 255)
 red = (255, 0, 0)
 
-# Global Variables
+# Game Specific Variables
 gameWindow = None
 cell_dim = None
 bx, by = None, None
@@ -39,6 +39,8 @@ my_turn = True
 port = 12345
 is_joined = False
 win = False
+fps = 30
+clock = pg.time.Clock()
 
 # Stop all threads var
 stop_event = threading.Event()
@@ -431,13 +433,12 @@ def write(text, x, y):
     gameWindow.blit(text, textRect)
     
 def middle_screen_create():
-    global gameWindow, is_joined
+    global gameWindow, is_joined, fps, clock
     width, height = 1200, 728
     gameWindow = pg.display.set_mode((width, height))
     gameWindow.fill(white)
     
-    clock = pg.time.Clock()
-    fps = 30
+    
          
     write("Waiting for a player to join", width//2, height//2)
     while not is_joined:
@@ -452,13 +453,11 @@ def middle_screen_create():
     pg.quit()
 
 def middle_screen_join():
-    global gameWindow, is_joined, port
+    global gameWindow, is_joined, port, fps, clock
     width, height = 1200, 728
     gameWindow = pg.display.set_mode((width, height))
     gameWindow.fill(white)
     
-    clock = pg.time.Clock()
-    fps = 30
     
     write("Finding Nearby Game", width//2, height//2)
              
@@ -475,7 +474,7 @@ def middle_screen_join():
     
 # Function for welcome screen
 def welcome():
-    global gameWindow, my_color, op_color, my_turn
+    global gameWindow, my_color, op_color, my_turn, fps, clock
     width, height = 1200, 728
         
     # Creating Board
@@ -486,8 +485,6 @@ def welcome():
     write("Create Game - Play White (Press C)", width//2, 350)
     write("Join Game - Play Black (Press J)", width//2, 500)
     
-    clock = pg.time.Clock()
-    fps = 30
     
     game_over = False
     while not game_over:
@@ -531,8 +528,7 @@ def flip_board():
             board[i][j] = board[7-i][7-j]
             board[7-i][7-j] = t
 def main():
-    
-    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color, win, is_joined
+    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color, win, is_joined, fps, clock
     # Game window Dimensions
     width, height = 1200, 728
     
@@ -581,10 +577,6 @@ def main():
     for i in range(8):
         board[6][i] = Pawn(my_color)
     pg.display.set_caption('Chess Game')
-    
-    # FPS
-    clock = pg.time.Clock()
-    fps = 30
     
     # Game loop
     while not game_over:
