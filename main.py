@@ -31,6 +31,7 @@ cell_dim = None
 bx, by = None, None
 board = None
 valid_moves_board = None
+opp_valid_moves = None
 my_color = 'white'
 op_color = 'black'
 piece_selected = False
@@ -179,6 +180,7 @@ def load_svg(filename):
 
     return resized_surface
 
+
 class Piece:
     def __init__(self, color, ptype, path):
         self.color = color
@@ -194,22 +196,25 @@ class Piece:
         
         
 class King(Piece):
+    global board
     def __init__(self, color):
         super().__init__(color, 'k', f'src/k-{color}.svg')
         self.dir = [[1, 1], [1, -1], [-1, -1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]
         
     def valid_moves(self, x, y):
+        global opp_valid_moves
         moves = []
         for i in range(8):
             dx, dy = self.dir[i][0], self.dir[i][1]
             cx = x + dx
             cy = y + dy
             if valid_coordinate(cx, cy):
-                if board[cx][cy] == '' or board[cx][cy].color == op_color:
+                if (board[cx][cy] == '' or board[cx][cy].color != board[x][y].color) and is_valid_move(x,y,cx,cy):
                     moves.append([cx, cy])
         return moves
 
 class Queen(Piece):
+    global board
     def __init__(self, color):
         super().__init__(color, 'q', f'src/q-{color}.svg')
         self.dir = [[1, 1], [1, -1], [-1, -1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]
@@ -222,15 +227,17 @@ class Queen(Piece):
             cy = y + dy
             while valid_coordinate(cx, cy):
                 if board[cx][cy] != '':
-                    if board[cx][cy].color == op_color:
+                    if board[cx][cy].color != board[x][y].color and is_valid_move(x,y,cx,cy):
                         moves.append([cx, cy])
                     break
-                moves.append([cx, cy])
+                if  is_valid_move(x,y,cx,cy):
+                    moves.append([cx, cy])
                 cx += dx
                 cy += dy
         return moves
         
 class Bishop(Piece):
+    global board
     def __init__(self, color):
         super().__init__(color, 'b', f'src/b-{color}.svg')
         self.dir = [[1, 1], [1, -1], [-1, -1], [-1, 1]]
@@ -243,15 +250,18 @@ class Bishop(Piece):
             cy = y + dy
             while valid_coordinate(cx, cy):
                 if board[cx][cy] != '':
-                    if board[cx][cy].color == op_color:
-                        moves.append([cx, cy])
+                    if board[cx][cy].color != board[x][y].color:
+                        if is_valid_move(x,y,cx,cy):
+                            moves.append([cx, cy])
                     break
-                moves.append([cx, cy])
+                if  is_valid_move(x,y,cx,cy):
+                    moves.append([cx, cy])
                 cx += dx
                 cy += dy
         return moves
         
 class Knight(Piece):
+    global board
     def __init__(self, color):
         super().__init__(color, 'n', f'src/n-{color}.svg')
         self.dir = [
@@ -265,12 +275,13 @@ class Knight(Piece):
         moves = []
         for i in range(8):
             cx, cy = x + self.dir[i][0], y + self.dir[i][1]
-            if valid_coordinate(cx, cy) and (board[cx][cy] == '' or board[cx][cy].color == op_color):
+            if valid_coordinate(cx, cy) and (board[cx][cy] == '' or board[cx][cy].color != board[x][y].color) and is_valid_move(x,y,cx,cy):
                 moves.append([cx, cy])
         return moves
         
         
 class Rook(Piece):
+    global board
     def __init__(self, color):
         super().__init__(color, 'r', f'src/r-{color}.svg')
         self.dir = [[0, 1], [0, -1], [1, 0], [-1, 0]]
@@ -283,36 +294,93 @@ class Rook(Piece):
             cy = y + dy
             while valid_coordinate(cx, cy):
                 if board[cx][cy] != '':
-                    if board[cx][cy].color == op_color:
+                    if board[cx][cy].color != board[x][y].color and is_valid_move(x,y,cx,cy):
                         moves.append([cx, cy])
                     break
-                moves.append([cx, cy])
+                if  is_valid_move(x,y,cx,cy):
+                    moves.append([cx, cy])
                 cx += dx
                 cy += dy
         return moves
         
 class Pawn(Piece):
+    global board
     def __init__(self, color):
         super().__init__(color, 'p', f'src/p-{color}.svg')
         
     def valid_moves(self, x, y):
+        global opp_valid_moves
         moves = []
         if x == 6:
             for i in range(5, 3, -1):
-                if board[i][y] == '':
+                if board[i][y] == '' and is_valid_move(x,y,i,y):
                     moves.append([i, y])
                 else:
                     break
         else:
-            if board[x-1][y] == '':
+            if board[x-1][y] == '' and is_valid_move(x,y,x-1,y):
                 moves.append([x-1, y])
-                
-        if valid_coordinate(x-1, y-1) and board[x-1][y-1] != '' and board[x-1][y-1].color == op_color:
+
+        if valid_coordinate(x-1, y-1) and board[x-1][y-1] != '' and board[x-1][y-1].color != board[x][y].color and is_valid_move(x,y,x-1,y-1):
             moves.append([x-1, y-1])
-        if valid_coordinate(x-1, y+1) and board[x-1][y+1] != '' and board[x-1][y+1].color == op_color:
+        if valid_coordinate(x-1, y+1) and board[x-1][y+1] != '' and board[x-1][y+1].color != board[x][y].color and is_valid_move(x,y,x-1,y+1):
             moves.append([x-1, y+1])
             
         return moves
+
+def is_valid_move(sx,sy,ex,ey):
+    global board,op_color,my_color
+
+    temp=board[ex][ey]
+    board[ex][ey]=board[sx][sy]
+    board[sx][sy]=''
+ 
+    king_pos=None
+    for i in range(8):
+        for j in range(8):
+            if board[i][j]!='' and board[i][j].color==my_color and board[i][j].ptype=='k':
+                king_pos=[i,j]
+    print('k',king_pos)
+    x,y=king_pos[0],king_pos[1]
+    dir = [[1, 1], [1, -1], [-1, -1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]
+    flg=True
+    for i in range(8):
+            dx, dy = dir[i][0], dir[i][1]
+            cx = x + dx
+            cy = y + dy
+            while valid_coordinate(cx, cy):
+                if board[cx][cy] != '':
+                    if board[cx][cy].color != board[x][y].color:
+                        if board[cx][cy].ptype=='q':
+                            flg=False
+                        if dx==0 or dy==0:
+                            if board[cx][cy].ptype=='r':
+                                flg=False
+                        else :
+                            if board[cx][cy].ptype=='b':
+                                flg=False
+                    break
+                cx += dx
+                cy += dy
+
+    if valid_coordinate(x-1,y-1) and board[x-1][y-1]!='' and board[x-1][y-1].color==op_color and board[x-1][y-1].ptype=='p':
+        flg=False
+    if valid_coordinate(x-1,y+1) and board[x-1][y+1]!='' and board[x-1][y+1].color==op_color and board[x-1][y+1].ptype=='p':
+        flg=False
+    dir = [
+            [1, -2], [1, 2],
+            [-1, -2], [-1, 2],
+            [2, 1], [2, -1],
+            [-2, 1], [-2, -1]
+        ]
+    
+    for i in range(8):
+        cx, cy = x + dir[i][0], y + dir[i][1]
+        if valid_coordinate(cx, cy) and (board[cx][cy] != '' and board[cx][cy].color != board[x][y].color) and board[cx][cy].ptype=='n':
+                flg=False
+    board[sx][sy]=board[ex][ey]
+    board[ex][ey]=temp
+    return flg
 
 # Function to move piece from one cell to another
 def move_piece():
@@ -428,10 +496,14 @@ def welcome():
                     
         clock.tick(fps)
         pg.display.update()
-
+def flip_board():
+    global board
+    for i in range(4):
+        for j in range(8):
+            board[i][j],board[7-i][7-j]=board[7-i][7-j],board[i][j]
 def main():
     
-    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event
+    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color
     # Game window Dimensions
     width, height = 1200, 728
     
@@ -449,6 +521,8 @@ def main():
     # Creating Board
     gameWindow = pg.display.set_mode((width, height))
     board = [['' for i in range(8)] for j in range(8)]
+    
+    opp_valid_moves = [[False for _ in range(8)]*8]
     
     # Place pieces of opposite color
     board[0][0] = board[0][7] = Rook(op_color)
@@ -513,6 +587,8 @@ def main():
                     print("1: ", sx, sy, ex, ey)
                     move_piece()
                     clear_valid_baord()
+                    # my_color,op_color=op_color,my_color
+                    # flip_board()
                 
                 elif board[px][py].color == my_color:
                     sx, sy = px, py    
@@ -542,6 +618,11 @@ def main():
             else:
                 cell_color = black
             
+        # Place pieces
+        for i in range(8):
+            for j in range(8):
+                if board[i][j] != '':
+                    board[i][j].place(i, j) 
                     
         for i in range(8):
             for j in range(8):
