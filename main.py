@@ -482,6 +482,10 @@ def welcome():
     gameWindow = pg.display.set_mode((width, height))
     gameWindow.fill(white)
     
+    write("Single Device Play (Press S)", width//2, 200)
+    write("Create Game - Play White (Press C)", width//2, 350)
+    write("Join Game - Play Black (Press J)", width//2, 500)
+    
     clock = pg.time.Clock()
     fps = 30
     
@@ -491,6 +495,9 @@ def welcome():
             if event.type == pg.QUIT:
                 game_over = True
             elif event.type == pg.KEYDOWN:
+                if event.key == pg.K_s:
+                    main()
+                    game_over = True
                 if event.key == pg.K_c:
                     threading.Thread(target=run_server).start()
                     middle_screen_create()
@@ -504,8 +511,6 @@ def welcome():
                     middle_screen_join()
                     main()
                     game_over = True
-        write("Create Game - Play White (Press C)", width//2, 200)
-        write("Join Game - Play Black (Press J)", width//2, 500)
                     
         clock.tick(fps)
         pg.display.update()
@@ -518,9 +523,16 @@ def is_checkmated():
                 if len(board[i][j].valid_moves(i, j)):
                     flg = False
     return flg
+def flip_board():
+    global board
+    for i in range(4):
+        for j in range(8):
+            t = board[i][j]
+            board[i][j] = board[7-i][7-j]
+            board[7-i][7-j] = t
 def main():
     
-    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color, win
+    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color, win, is_joined
     # Game window Dimensions
     width, height = 1200, 728
     
@@ -613,8 +625,9 @@ def main():
                     print("1: ", sx, sy, ex, ey)
                     move_piece()
                     clear_valid_baord()
-                    # my_color,op_color=op_color,my_color
-                    # flip_board()
+                    if not is_joined:
+                        my_color,op_color=op_color,my_color
+                        flip_board()
                 
                 elif board[px][py].color == my_color:
                     sx, sy = px, py    
