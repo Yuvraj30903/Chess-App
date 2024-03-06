@@ -38,7 +38,7 @@ piece_selected = False
 my_turn = True
 port = 12345
 is_joined = False
-
+win = False
 
 # Stop all threads var
 stop_event = threading.Event()
@@ -62,19 +62,26 @@ def broadcast_server_ip():
             threading.Event().wait(5)  # Broadcast every 5 seconds
         
 def handle_client(client_socket, address):
-    global sx, sy, ex, ey, stop_event, my_turn
+    global sx, sy, ex, ey, stop_event, my_turn, win
     while not stop_event.is_set():
         try:
             while not stop_event.is_set():
                 if sx != -1 and ex != -1:
                     data = str(sx)+str(sy)+str(ex)+str(ey)
                     client_socket.send(data.encode('utf-8'))
+                    if sx == 8:
+                        stop_event.set()
+                        break
                     my_turn = False
                     data = client_socket.recv(1024)
                     my_turn = True
                     updates = data.decode()
                     # Update start x,y end x,y
                     usx, usy, uex, uey = map(int, updates)
+                    if usx == 8:
+                        win = True
+                        stop_event.set()
+                        break
                     move_piece_from_opponent(usx, usy, uex, uey)
                     print(data.decode()) 
                     
@@ -119,7 +126,7 @@ def run_server():
             server.close()
         
 def discover_servers():
-    global sx, sy, ex, ey, stop_event, my_turn, is_joined
+    global sx, sy, ex, ey, stop_event, my_turn, is_joined, win
     flg = False
     while not (flg or stop_event.is_set()):
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -149,8 +156,12 @@ def discover_servers():
                 data = client.recv(1024)
                 my_turn = True
                 updates = data.decode()
-                    # Update start x,y end x,y
+                # Update start x,y end x,y
                 usx, usy, uex, uey = map(int, updates)
+                if usx == 8:
+                    stop_event.set()
+                    win = True
+                    break
                 move_piece_from_opponent(usx, usy, uex, uey)
                 
                 print(data.decode()) 
@@ -158,6 +169,9 @@ def discover_servers():
                     pass
                 data = str(sx)+str(sy)+str(ex)+str(ey)
                 client.send(data.encode('utf-8'))
+                if sx == 8:
+                    stop_event.set()
+                    break
                 my_turn = False
 
 
@@ -340,7 +354,6 @@ def is_valid_move(sx,sy,ex,ey):
         for j in range(8):
             if board[i][j]!='' and board[i][j].color==my_color and board[i][j].ptype=='k':
                 king_pos=[i,j]
-    print('k',king_pos)
     x,y=king_pos[0],king_pos[1]
     dir = [[1, 1], [1, -1], [-1, -1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]
     flg=True
@@ -496,14 +509,18 @@ def welcome():
                     
         clock.tick(fps)
         pg.display.update()
-def flip_board():
-    global board
-    for i in range(4):
+def is_checkmated():
+    global board, my_color, op_color
+    flg = True
+    for i in range(8):
         for j in range(8):
-            board[i][j],board[7-i][7-j]=board[7-i][7-j],board[i][j]
+            if board[i][j] != '' and board[i][j].color == my_color:
+                if len(board[i][j].valid_moves(i, j)):
+                    flg = False
+    return flg
 def main():
     
-    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color
+    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color, win
     # Game window Dimensions
     width, height = 1200, 728
     
@@ -559,6 +576,15 @@ def main():
     
     # Game loop
     while not game_over:
+        if is_checkmated():
+            sx, sy, ex, ey = 8, 8, 8, 8
+            game_over = True
+            pg.quit()
+            sys.exit(0)
+        if win:
+            game_over = True
+            pg.quit()
+            sys.exit(0)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 game_over = True
