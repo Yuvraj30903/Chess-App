@@ -414,7 +414,7 @@ def move_piece_from_opponent(sx, sy, ex, ey):
     board[ex][ey]=board[sx][sy]
     board[sx][sy]=''
     
-def clear_valid_baord():
+def clear_valid_board():
     global valid_moves_board
     for i in range(8):
         for j in range(8):
@@ -624,7 +624,7 @@ def main():
                     ex, ey = px, py
                     print("1: ", sx, sy, ex, ey)
                     move_piece()
-                    clear_valid_baord()
+                    clear_valid_board()
                     if not is_joined:
                         my_color,op_color=op_color,my_color
                         flip_board()
@@ -634,7 +634,7 @@ def main():
                     valid_moves = board[px][py].valid_moves(px, py)
                     print("2: ", sx, sy, ex, ey)
                     
-                    clear_valid_baord()
+                    clear_valid_board()
                             
                     for move in valid_moves:
                         valid_moves_board[move[0]][move[1]] = True
@@ -662,6 +662,9 @@ def main():
             for j in range(8):
                 if board[i][j] != '':
                     board[i][j].place(i, j) 
+                    
+        if sx != -1:
+            pg.draw.rect(gameWindow, green, (bx + sy*cell_dim, by + sx*cell_dim, cell_dim, cell_dim), 5)
                     
         for i in range(8):
             for j in range(8):
