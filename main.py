@@ -361,6 +361,11 @@ def is_valid_move(sx,sy,ex,ey):
             dx, dy = dir[i][0], dir[i][1]
             cx = x + dx
             cy = y + dy
+            if valid_coordinate(cx,cy):
+                if board[cx][cy] != '':
+                    if board[cx][cy].color != board[x][y].color:
+                        if board[cx][cy].ptype=='k':
+                            flg=False
             while valid_coordinate(cx, cy):
                 if board[cx][cy] != '':
                     if board[cx][cy].color != board[x][y].color:
