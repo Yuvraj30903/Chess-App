@@ -586,7 +586,8 @@ def main():
     opp_valid_moves = [[False for _ in range(8)]*8]
     
     # Place pieces of opposite color
-    board[0][0] = board[0][7] = Rook(op_color)
+    board[0][0] = Rook(op_color)
+    board[0][7] = Rook(op_color)
     board[0][1] = board[0][6] = Knight(op_color)
     board[0][2] = board[0][5] = Bishop(op_color)
     board[0][3] = Queen(op_color)
@@ -599,7 +600,8 @@ def main():
         board[1][i] = Pawn(op_color)
         
     # Place pieces of my side color
-    board[7][0] = board[7][7] = Rook(my_color)
+    board[7][0] = Rook(my_color)
+    board[7][7] = Rook(my_color)
     board[7][1] = board[7][6] = Knight(my_color)
     board[7][2] = board[7][5] = Bishop(my_color)
     board[7][3] = Queen(my_color)
