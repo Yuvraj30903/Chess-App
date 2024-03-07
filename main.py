@@ -430,7 +430,7 @@ def is_valid_move(sx,sy,ex,ey):
 
 # Function to move piece from one cell to another
 def move_piece():
-    global sx, sy, ex, ey
+    global sx, sy, ex, ey, board
     if sx == -1 or sy == -1 or ex == -1 or ey == -1:
         return
     print(sx, sy, ex, ey)
@@ -647,21 +647,22 @@ def main():
                     ex, ey = px, py
                     if board[sx][sy].ptype == 'k' or board[sx][sy].ptype == 'r':
                         board[sx][sy].has_moved = True
+                    tsx, tsy, tex, tey = sx, sy, ex, ey
                     
                     move_piece()
-                    if board[sx][sy].ptype == 'k':
-                        if ey-sy == 2:
+                    if board[tex][tey].ptype == 'k':
+                        if tey-tsy == 2:
                             # temp = board[7][7]
                             # temp.has_moved = True
                             # board[7][7] = ''
                             # board[ex][ey-1] = temp
-                            sx, sy, ex, ey = 7, 7, ex, ey-1
-                        elif sy-ey == 2:
+                            sx, sy, ex, ey = 7, 7, tex, tey-1
+                        elif tsy-tey == 2:
                             # temp = board[7][0]
                             # temp.has_moved = True
                             # board[7][0] = ''
                             # board[ex][ey+1] = temp
-                            sx, sy, ex, ey = 7, 0, ex, ey+1
+                            sx, sy, ex, ey = 7, 0, tex, tey+1
                         move_piece()
                     print("1: ", sx, sy, ex, ey)
                     clear_valid_board()
