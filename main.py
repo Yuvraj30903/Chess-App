@@ -648,19 +648,22 @@ def main():
                     if board[sx][sy].ptype == 'k' or board[sx][sy].ptype == 'r':
                         board[sx][sy].has_moved = True
                     
+                    move_piece()
                     if board[sx][sy].ptype == 'k':
                         if ey-sy == 2:
-                            temp = board[7][7]
-                            temp.has_moved = True
-                            board[7][7] = ''
-                            board[ex][ey-1] = temp
+                            # temp = board[7][7]
+                            # temp.has_moved = True
+                            # board[7][7] = ''
+                            # board[ex][ey-1] = temp
+                            sx, sy, ex, ey = 7, 7, ex, ey-1
                         elif sy-ey == 2:
-                            temp = board[7][0]
-                            temp.has_moved = True
-                            board[7][0] = ''
-                            board[ex][ey+1] = temp
+                            # temp = board[7][0]
+                            # temp.has_moved = True
+                            # board[7][0] = ''
+                            # board[ex][ey+1] = temp
+                            sx, sy, ex, ey = 7, 0, ex, ey+1
+                        move_piece()
                     print("1: ", sx, sy, ex, ey)
-                    move_piece()
                     clear_valid_board()
                     if not is_joined:
                         my_color,op_color=op_color,my_color
