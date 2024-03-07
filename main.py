@@ -212,14 +212,13 @@ class Piece:
         
         
 class King(Piece):
-    global board
     def __init__(self, color):
         super().__init__(color, 'k', f'src/k-{color}.svg')
         self.has_moved = False
         self.dir = [[1, 1], [1, -1], [-1, -1], [-1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]
         
     def valid_moves(self, x, y):
-        global opp_valid_moves
+        global board
         moves = []
         for i in range(8):
             dx, dy = self.dir[i][0], self.dir[i][1]
@@ -233,12 +232,12 @@ class King(Piece):
 
         # Left Side Castling
         flg = True
-        for i in range(y-1, 1, -1): 
+        for i in range(y-1, 0, -1): 
             if (not is_valid_move(x, y, x, i)) or board[x][i] != '':
                 flg = False
-        if (not is_valid_move(x, y, x, y)) or self.has_moved or (not (board[x][0] != '' and board[x][0].ptype == 'r' and board[x][0].has_moved == False)):
+        if not is_valid_move(x, y, x, y):
             flg = False
-        if flg:
+        if flg and (board[x][0] != '' and board[x][0].ptype == 'r' and board[x][0].has_moved == False):
             moves.append([x, y-2])
             
         # Right Side Castling
@@ -246,9 +245,9 @@ class King(Piece):
         for i in range(y+1, 7): 
             if (not is_valid_move(x, y, x, i)) or board[x][i] != '':
                 flg = False
-        if (not is_valid_move(x, y, x, y)) or self.has_moved or (not (board[x][7] != '' and board[x][7].ptype == 'r' and board[x][7].has_moved == False)):
+        if not is_valid_move(x, y, x, y):
             flg = False
-        if flg:
+        if flg and (board[x][7] != '' and board[x][7].ptype == 'r' and board[x][7].has_moved == False):
             moves.append([x, y+2])
         return moves
 
@@ -652,6 +651,7 @@ def main():
                         continue
                     ex, ey = px, py
                     if board[sx][sy].ptype == 'k' or board[sx][sy].ptype == 'r':
+                        print("Has Moved: ", sx, sy, ex, ey)
                         board[sx][sy].has_moved = True 
                     
                     if board[sx][sy].ptype=='k':
