@@ -440,6 +440,12 @@ def move_piece():
     
 # Function to move piece from signal of opponents
 def move_piece_from_opponent(sx, sy, ex, ey):
+    global board
+    if board[7-sx][7-sy].ptype=='k':
+        if ey-sy == 2:
+            move_piece_from_opponent(7,7,ex,ey-1)
+        elif sy-ey == 2:
+            move_piece_from_opponent(7,0,ex,ey+1)
     sx = 7-sx
     sy = 7-sy
     ex = 7-ex
@@ -646,24 +652,18 @@ def main():
                         continue
                     ex, ey = px, py
                     if board[sx][sy].ptype == 'k' or board[sx][sy].ptype == 'r':
-                        board[sx][sy].has_moved = True
-                    tsx, tsy, tex, tey = sx, sy, ex, ey
+                        board[sx][sy].has_moved = True 
                     
-                    move_piece()
-                    if board[tex][tey].ptype == 'k':
-                        if tey-tsy == 2:
-                            # temp = board[7][7]
-                            # temp.has_moved = True
-                            # board[7][7] = ''
-                            # board[ex][ey-1] = temp
-                            sx, sy, ex, ey = 7, 7, tex, tey-1
-                        elif tsy-tey == 2:
-                            # temp = board[7][0]
-                            # temp.has_moved = True
-                            # board[7][0] = ''
-                            # board[ex][ey+1] = temp
-                            sx, sy, ex, ey = 7, 0, tex, tey+1
-                        move_piece()
+                    if board[sx][sy].ptype=='k':
+                        if ey-sy == 2: 
+                            board[ex][ey-1]=board[7][7]
+                            board[7][7]=''
+                        elif sy-ey == 2:
+                            board[ex][ey+1]=board[7][0]
+                            board[7][0]=''
+
+                    move_piece() 
+                    
                     print("1: ", sx, sy, ex, ey)
                     clear_valid_board()
                     if not is_joined:
