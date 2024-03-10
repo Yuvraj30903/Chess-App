@@ -38,7 +38,7 @@ piece_selected = False
 my_turn = True
 port = 12345
 is_joined = False
-win = False
+win = 0
 fps = 30
 clock = pg.time.Clock()
 
@@ -74,6 +74,9 @@ def handle_client(client_socket, address):
                     if sx == 8:
                         stop_event.set()
                         break
+                    if sx == 9:
+                        stop_event.set()
+                        break
                     my_turn = False
                     data = client_socket.recv(1024)
                     my_turn = True
@@ -81,7 +84,11 @@ def handle_client(client_socket, address):
                     # Update start x,y end x,y
                     usx, usy, uex, uey = map(int, updates)
                     if usx == 8:
-                        win = True
+                        win = 1
+                        stop_event.set()
+                        break
+                    if usx == 9:
+                        win = -1
                         stop_event.set()
                         break
                     move_piece_from_opponent(usx, usy, uex, uey)
@@ -162,7 +169,11 @@ def discover_servers():
                 usx, usy, uex, uey = map(int, updates)
                 if usx == 8:
                     stop_event.set()
-                    win = True
+                    win = 1
+                    break
+                if usx == 9:
+                    stop_event.set()
+                    win = -1
                     break
                 move_piece_from_opponent(usx, usy, uex, uey)
                 
@@ -172,6 +183,9 @@ def discover_servers():
                 data = str(sx)+str(sy)+str(ex)+str(ey)
                 client.send(data.encode('utf-8'))
                 if sx == 8:
+                    stop_event.set()
+                    break
+                if sx == 9:
                     stop_event.set()
                     break
                 my_turn = False
@@ -635,6 +649,7 @@ def main():
             pg.quit()
             sys.exit(0)
         if win==1:
+            sx, sy, ex, ey = 9, 9, 9, 9
             game_over = True
             pg.quit()
             sys.exit(0)
