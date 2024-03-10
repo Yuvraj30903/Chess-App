@@ -548,13 +548,24 @@ def welcome():
         clock.tick(fps)
         pg.display.update()
 def is_checkmated():
-    global board, my_color, op_color
+    global board, my_color, op_color,win
     flg = True
+    cnt=0
     for i in range(8):
         for j in range(8):
             if board[i][j] != '' and board[i][j].color == my_color:
                 if len(board[i][j].valid_moves(i, j)):
                     flg = False
+            if board[i][j] != '':cnt+=1
+    king_pos=None
+    for i in range(8):
+        for j in range(8):
+            if board[i][j]!='' and board[i][j].color==my_color and board[i][j].ptype=='k':
+                king_pos=[i,j]
+    x,y=king_pos[0],king_pos[1]
+    if (flg and is_valid_move(x,y,x,y)) or cnt==2:
+        win=-1
+        flg=False
     return flg
 def flip_board():
     global board
@@ -623,8 +634,13 @@ def main():
             game_over = True
             pg.quit()
             sys.exit(0)
-        if win:
+        if win==1:
             game_over = True
+            pg.quit()
+            sys.exit(0)
+        if win==-1:
+            game_over=True
+            print("stalemate")
             pg.quit()
             sys.exit(0)
         for event in pg.event.get():
