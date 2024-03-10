@@ -24,6 +24,7 @@ black = (75, 115, 153)
 green = (0, 255, 0)
 blue = (0, 0, 255)
 red = (255, 0, 0)
+button_color = (50, 0, 255)
 
 # Game Specific Variables
 gameWindow = None
@@ -524,9 +525,9 @@ def middle_screen_join():
     
 # Function for welcome screen
 def welcome():
-    global gameWindow, my_color, op_color, my_turn, fps, clock
+    global gameWindow, my_color, op_color, my_turn, fps, clock,is_joined
     width, height = 1200, 728
-        
+    is_joined=False
     # Creating Board
     gameWindow = pg.display.set_mode((width, height))
     gameWindow.fill(white)
@@ -592,7 +593,7 @@ def main():
     global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color, win, is_joined, fps, clock
     # Game window Dimensions
     width, height = 1200, 728
-    
+    win=0
     # Cell dimension of board
     pad_y = 12
     cell_dim = (height - 2*pad_y)//8
@@ -611,24 +612,24 @@ def main():
     opp_valid_moves = [[False for _ in range(8)]*8]
     
     # Place pieces of opposite color
-    board[0][0] = Rook(op_color)
-    board[0][7] = Rook(op_color)
-    board[0][1] = board[0][6] = Knight(op_color)
-    board[0][2] = board[0][5] = Bishop(op_color)
+    # board[0][0] = Rook(op_color)
+    # board[0][7] = Rook(op_color)
+    # board[0][1] = board[0][6] = Knight(op_color)
+    # board[0][2] = board[0][5] = Bishop(op_color)
     board[0][3] = Queen(op_color)
     board[0][4] = King(op_color)
     if my_color == 'black':
         board[0][4] = Queen(op_color)
         board[0][3] = King(op_color)
         
-    for i in range(8):
-        board[1][i] = Pawn(op_color)
+    # for i in range(8):
+    #     board[1][i] = Pawn(op_color)
         
     # Place pieces of my side color
-    board[7][0] = Rook(my_color)
-    board[7][7] = Rook(my_color)
-    board[7][1] = board[7][6] = Knight(my_color)
-    board[7][2] = board[7][5] = Bishop(my_color)
+    # board[7][0] = Rook(my_color)
+    # board[7][7] = Rook(my_color)
+    # board[7][1] = board[7][6] = Knight(my_color)
+    # board[7][2] = board[7][5] = Bishop(my_color)
     board[7][3] = Queen(my_color)
     board[7][4] = King(my_color)
     if my_color == 'black':
@@ -637,8 +638,8 @@ def main():
     
     valid_moves_board = [[False for i in range(8)] for _ in range(8)]
     
-    for i in range(8):
-        board[6][i] = Pawn(my_color)
+    # for i in range(8):
+    #     board[6][i] = Pawn(my_color)
     pg.display.set_caption('Chess Game')
     
     # Game loop
@@ -646,24 +647,23 @@ def main():
         if is_checkmated():
             sx, sy, ex, ey = 8, 8, 8, 8
             game_over = True
-            pg.quit()
-            sys.exit(0)
+            PlayAgainOrQuit()
+            sys.exit()
         if win==1:
             sx, sy, ex, ey = 9, 9, 9, 9
             game_over = True
-            pg.quit()
-            sys.exit(0)
+            PlayAgainOrQuit()
+            sys.exit()
         if win==-1:
             game_over=True
             print("stalemate")
-            pg.quit()
-            sys.exit(0)
+            PlayAgainOrQuit()
+            sys.exit()
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 game_over = True
                 stop_event.set()
-                pg.quit()
-                sys.exit(0)
+                sys.exit()
             elif event.type == pg.MOUSEBUTTONDOWN:
                     
                 if not my_turn:
@@ -747,7 +747,90 @@ def main():
                     
         clock.tick(fps)
         pg.display.update()
+    pg.quit()
 
+    welcome() 
+def blurSurf(surface, amt): 
+    if amt < 1.0:
+        raise ValueError("Arg 'amt' must be greater than 1.0, passed in value is %s"%amt)
+    scale = 1.0/float(amt)
+    surf_size = surface.get_size()
+    scale_size = (int(surf_size[0]*scale), int(surf_size[1]*scale))
+    surf = pg.transform.smoothscale(surface, scale_size)
+    surf = pg.transform.smoothscale(surf, surf_size)
+    return surf 
+def PlayAgainOrQuit():
+    global win
+    width, height = 1200, 728
+    
+    # Game specific Variables
+    game_over = False
+    clock = pg.time.Clock()
+    blurred_background = blurSurf(gameWindow,70)
+
+    # Creating Board
+    # gameWindow = pg.display.set_mode((width, height))
+    # pg.display.set_caption('Chess Game')
+    while not game_over:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                game_over = True
+                stop_event.set()
+            if event.type == pg.MOUSEBUTTONDOWN:
+                mouse_pos = pg.mouse.get_pos()
+
+                play_again_button = pg.Rect(300, 300, 250, 80)
+                quit_button = pg.Rect(700, 300, 250, 80)
+
+                if play_again_button.collidepoint(mouse_pos): 
+                    welcome()
+                    sys.exit()
+                    # Add your play again logic here
+                elif quit_button.collidepoint(mouse_pos):
+                    pg.quit()
+                    sys.exit()
+
+        gameWindow.blit(blurred_background,(0,0))
+        # pg.draw.rect(gameWindow,white,(200,180,800,200))
+
+        play_again_button = pg.draw.rect(gameWindow, button_color, (300, 300, 250, 80))
+        quit_button = pg.draw.rect(gameWindow, button_color, (700, 300, 250, 80))
+        result_button = pg.draw.rect(gameWindow, button_color, (500, 200, 250, 80))
+
+        play_again_text = font.render("Play Again", True, white)
+        quit_text = font.render("Quit", True, white)
+
+        gameWindow.blit(play_again_text, (play_again_button.centerx - play_again_text.get_width() // 2,
+                                    play_again_button.centery - play_again_text.get_height() // 2))
+        gameWindow.blit(quit_text, (quit_button.centerx - quit_text.get_width() // 2,
+                                quit_button.centery - quit_text.get_height() // 2))
+        result_text=""
+        if is_joined==False:
+            if my_color=='black':
+                result_text = "White won!"
+            else:
+                result_text = "Black won!"
+            if win==-1:
+                result_text = "Stalemate!"
+        else :
+            if win == 1: 
+                result_text = "You won"
+            elif win == 0:
+                result_text = "You lose"
+            elif win == -1:
+                result_text = "Stalemate"
+        result_text = font.render(result_text, True, white)
+        gameWindow.blit(result_text, (result_button.centerx - result_text.get_width() // 2,
+                                result_button.centery - result_text.get_height() // 2))
+        
+        # result_surface = font.render(result_text, True, white,button_color)
+        # gameWindow.blit(result_surface, (width // 2 - result_surface.get_width() // 2, 200))
+
+
+ 
+        clock.tick(fps)
+        pg.display.update()
+    pg.quit()
 
 if __name__ == '__main__':
-    welcome()
+    welcome() 
