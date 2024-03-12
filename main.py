@@ -749,7 +749,6 @@ def main():
         pg.display.update()
     pg.quit()
 
-    welcome() 
 def blurSurf(surface, amt): 
     if amt < 1.0:
         raise ValueError("Arg 'amt' must be greater than 1.0, passed in value is %s"%amt)
@@ -760,13 +759,12 @@ def blurSurf(surface, amt):
     surf = pg.transform.smoothscale(surf, surf_size)
     return surf 
 def PlayAgainOrQuit():
-    global win
+    global win, clock, is_joined, gameWindow
     width, height = 1200, 728
-    
+    pg.init()
     # Game specific Variables
     game_over = False
-    clock = pg.time.Clock()
-    blurred_background = blurSurf(gameWindow,70)
+    # blurred_background = blurSurf(gameWindow,70)
 
     # Creating Board
     # gameWindow = pg.display.set_mode((width, height))
@@ -789,21 +787,22 @@ def PlayAgainOrQuit():
                 elif quit_button.collidepoint(mouse_pos):
                     pg.quit()
                     sys.exit()
+        gameWindow.fill(white)
 
-        gameWindow.blit(blurred_background,(0,0))
+        # gameWindow.blit(blurred_background,(0,0))
         # pg.draw.rect(gameWindow,white,(200,180,800,200))
 
-        play_again_button = pg.draw.rect(gameWindow, button_color, (300, 300, 250, 80))
-        quit_button = pg.draw.rect(gameWindow, button_color, (700, 300, 250, 80))
-        result_button = pg.draw.rect(gameWindow, button_color, (500, 200, 250, 80))
+        # play_again_button = pg.draw.rect(gameWindow, button_color, (300, 300, 250, 80))
+        # quit_button = pg.draw.rect(gameWindow, button_color, (700, 300, 250, 80))
+        # result_button = pg.draw.rect(gameWindow, button_color, (500, 200, 250, 80))
 
-        play_again_text = font.render("Play Again", True, white)
-        quit_text = font.render("Quit", True, white)
+        # play_again_text = font.render("Play Again", True, white)
+        # quit_text = font.render("Quit", True, white)
 
-        gameWindow.blit(play_again_text, (play_again_button.centerx - play_again_text.get_width() // 2,
-                                    play_again_button.centery - play_again_text.get_height() // 2))
-        gameWindow.blit(quit_text, (quit_button.centerx - quit_text.get_width() // 2,
-                                quit_button.centery - quit_text.get_height() // 2))
+        # gameWindow.blit(play_again_text, (play_again_button.centerx - play_again_text.get_width() // 2,
+        #                             play_again_button.centery - play_again_text.get_height() // 2))
+        # gameWindow.blit(quit_text, (quit_button.centerx - quit_text.get_width() // 2,
+        #                         quit_button.centery - quit_text.get_height() // 2))
         result_text=""
         if is_joined==False:
             if my_color=='black':
@@ -820,8 +819,9 @@ def PlayAgainOrQuit():
             elif win == -1:
                 result_text = "Stalemate"
         result_text = font.render(result_text, True, white)
-        gameWindow.blit(result_text, (result_button.centerx - result_text.get_width() // 2,
-                                result_button.centery - result_text.get_height() // 2))
+        # gameWindow.blit(result_text, (result_button.centerx - result_text.get_width() // 2,
+        #                         result_button.centery - result_text.get_height() // 2))
+        # print("Result Text: ", result_text)
         
         # result_surface = font.render(result_text, True, white,button_color)
         # gameWindow.blit(result_surface, (width // 2 - result_surface.get_width() // 2, 200))
