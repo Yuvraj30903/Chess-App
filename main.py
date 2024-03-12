@@ -501,7 +501,6 @@ def middle_screen_create():
                 exit()
         clock.tick(fps)
         pg.display.update()
-    pg.quit()
 
 def middle_screen_join():
     global gameWindow, is_joined, port, fps, clock
@@ -521,7 +520,6 @@ def middle_screen_join():
                 exit()
         clock.tick(fps)
         pg.display.update()
-    pg.quit()
     
 # Function for welcome screen
 def welcome():
@@ -648,22 +646,22 @@ def main():
             sx, sy, ex, ey = 8, 8, 8, 8
             game_over = True
             PlayAgainOrQuit()
-            sys.exit()
+            sys.exit(0)
         if win==1:
             sx, sy, ex, ey = 9, 9, 9, 9
             game_over = True
             PlayAgainOrQuit()
-            sys.exit()
+            sys.exit(0)
         if win==-1:
             game_over=True
             print("stalemate")
             PlayAgainOrQuit()
-            sys.exit()
+            sys.exit(0)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 game_over = True
                 stop_event.set()
-                sys.exit()
+                sys.exit(0)
             elif event.type == pg.MOUSEBUTTONDOWN:
                     
                 if not my_turn:
@@ -761,14 +759,10 @@ def blurSurf(surface, amt):
 def PlayAgainOrQuit():
     global win, clock, is_joined, gameWindow
     width, height = 1200, 728
-    pg.init()
+    # pg.init()
     # Game specific Variables
     game_over = False
-    # blurred_background = blurSurf(gameWindow,70)
-
-    # Creating Board
-    # gameWindow = pg.display.set_mode((width, height))
-    # pg.display.set_caption('Chess Game')
+    blurred_background = blurSurf(gameWindow,70)
     while not game_over:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -782,27 +776,27 @@ def PlayAgainOrQuit():
 
                 if play_again_button.collidepoint(mouse_pos): 
                     welcome()
-                    sys.exit()
+                    pg.quit()
+                    sys.exit(0)
                     # Add your play again logic here
                 elif quit_button.collidepoint(mouse_pos):
                     pg.quit()
-                    sys.exit()
+                    sys.exit(0)
         gameWindow.fill(white)
 
-        # gameWindow.blit(blurred_background,(0,0))
-        # pg.draw.rect(gameWindow,white,(200,180,800,200))
+        gameWindow.blit(blurred_background,(0,0))
 
-        # play_again_button = pg.draw.rect(gameWindow, button_color, (300, 300, 250, 80))
-        # quit_button = pg.draw.rect(gameWindow, button_color, (700, 300, 250, 80))
-        # result_button = pg.draw.rect(gameWindow, button_color, (500, 200, 250, 80))
+        play_again_button = pg.draw.rect(gameWindow, button_color, (300, 300, 250, 80))
+        quit_button = pg.draw.rect(gameWindow, button_color, (700, 300, 250, 80))
+        result_button = pg.draw.rect(gameWindow, button_color, (500, 200, 250, 80))
 
-        # play_again_text = font.render("Play Again", True, white)
-        # quit_text = font.render("Quit", True, white)
+        play_again_text = font.render("Play Again", True, white)
+        quit_text = font.render("Quit", True, white)
 
-        # gameWindow.blit(play_again_text, (play_again_button.centerx - play_again_text.get_width() // 2,
-        #                             play_again_button.centery - play_again_text.get_height() // 2))
-        # gameWindow.blit(quit_text, (quit_button.centerx - quit_text.get_width() // 2,
-        #                         quit_button.centery - quit_text.get_height() // 2))
+        gameWindow.blit(play_again_text, (play_again_button.centerx - play_again_text.get_width() // 2,
+                                    play_again_button.centery - play_again_text.get_height() // 2))
+        gameWindow.blit(quit_text, (quit_button.centerx - quit_text.get_width() // 2,
+                                quit_button.centery - quit_text.get_height() // 2))
         result_text=""
         if is_joined==False:
             if my_color=='black':
@@ -819,14 +813,8 @@ def PlayAgainOrQuit():
             elif win == -1:
                 result_text = "Stalemate"
         result_text = font.render(result_text, True, white)
-        # gameWindow.blit(result_text, (result_button.centerx - result_text.get_width() // 2,
-        #                         result_button.centery - result_text.get_height() // 2))
-        # print("Result Text: ", result_text)
-        
-        # result_surface = font.render(result_text, True, white,button_color)
-        # gameWindow.blit(result_surface, (width // 2 - result_surface.get_width() // 2, 200))
-
-
+        gameWindow.blit(result_text, (result_button.centerx - result_text.get_width() // 2,
+                                result_button.centery - result_text.get_height() // 2))
  
         clock.tick(fps)
         pg.display.update()
