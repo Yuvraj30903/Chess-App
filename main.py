@@ -199,6 +199,7 @@ def valid_coordinate(x, y):
     return x >= 0 and x < 8 and y >= 0 and y < 8
 
 def load_svg(filename):
+    global cell_dim
     # Convert SVG to PNG using cairosvg
     svg_content = open(filename, 'rb').read()
     png_content = cairosvg.svg2png(file_obj=BytesIO(svg_content), parent_width = cell_dim, parent_height = cell_dim)
@@ -213,6 +214,7 @@ def load_svg(filename):
 
 
 class Piece:
+    global gameWindow
     def __init__(self, color, ptype, path):
         self.color = color
         self.ptype = ptype
@@ -587,6 +589,61 @@ def flip_board():
             t = board[i][j]
             board[i][j] = board[7-i][7-j]
             board[7-i][7-j] = t
+
+def pawn_promotion():
+    global gameWindow, stop_event, ey, board, cell_dim, bx, by, clock, fps, my_color
+    
+    game_over = False
+    print("pawn", ey)
+    
+    cell_color = black
+        
+    for i in range(8):
+        for j in range(8):
+            pg.draw.rect(gameWindow, cell_color, [bx + i*cell_dim, by + j*cell_dim, cell_dim, cell_dim])
+            if cell_color == black:
+                cell_color = white
+            else:
+                cell_color = black
+        if cell_color == black:
+            cell_color = white
+        else:
+            cell_color = black
+        
+    # Place pieces
+    for i in range(8):
+        for j in range(8):
+            if i == 0 and j == ey:
+                Queen(my_color).place(i, j)
+            elif i == 1 and j == ey:
+                Bishop(my_color).place(i, j)
+            elif i == 2 and j == ey:
+                Knight(my_color).place(i, j)
+            elif i == 3 and j == ey:
+                Rook(my_color).place(i, j)
+            elif board[i][j] != '':
+                board[i][j].place(i, j)
+                
+
+    # pg.draw.rect(gameWindow, (255, 255, 255), (bx + i*cell_dim, by + j*cell_dim, cell_dim, 4*cell_dim))
+    # pg.draw.rect(gameWindow, green, (bx + i*cell_dim, by + j*cell_dim, cell_dim, 4*cell_dim), 5)
+    print("display update")
+    
+    while not game_over:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                game_over = True
+                stop_event.set()
+                sys.exit(0)
+            if event.type == pg.MOUSEBUTTONDOWN:
+                px = (event.pos[1] - by + cell_dim - 1) // cell_dim - 1
+                py = (event.pos[0] - bx + cell_dim - 1) // cell_dim - 1
+                if py == ey and 0 <= px <= 3:
+                    game_over = True
+        clock.tick(fps)
+        pg.display.update()
+    return px
+
 def main():
     global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color, win, is_joined, fps, clock
     # Game window Dimensions
@@ -620,8 +677,8 @@ def main():
         board[0][4] = Queen(op_color)
         board[0][3] = King(op_color)
         
-    # for i in range(8):
-    #     board[1][i] = Pawn(op_color)
+    for i in range(8):
+        board[1][i] = Pawn(op_color)
         
     # Place pieces of my side color
     # board[7][0] = Rook(my_color)
@@ -636,8 +693,8 @@ def main():
     
     valid_moves_board = [[False for i in range(8)] for _ in range(8)]
     
-    # for i in range(8):
-    #     board[6][i] = Pawn(my_color)
+    for i in range(8):
+        board[6][i] = Pawn(my_color)
     pg.display.set_caption('Chess Game')
     
     # Game loop
@@ -680,7 +737,12 @@ def main():
                 if (board[px][py] == '' or board[px][py].color != my_color) and valid_moves_board[px][py]:
                     if sx < 0:
                         continue
-                    ex, ey = px, py
+                        
+                    ey = py
+                    if board[sx][sy].ptype == 'p' and px == 0:
+                        px = pawn_promotion()
+                        print(board)
+                    ex = px
                     if board[sx][sy].ptype == 'k' or board[sx][sy].ptype == 'r':
                         print("Has Moved: ", sx, sy, ex, ey)
                         board[sx][sy].has_moved = True 
