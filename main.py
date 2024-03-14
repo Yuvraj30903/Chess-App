@@ -5,7 +5,7 @@ import socket
 import threading
 import os
 import sys
-from time import time
+from time import sleep
 
 
 pg.init()
@@ -33,15 +33,21 @@ cell_dim = None
 bx, by = None, None
 board = None
 valid_moves_board = None
-opp_valid_moves = None
 my_color = 'white'
 op_color = 'black'
-piece_selected = False
 my_turn = True
 port = 12345
 is_joined = False
 win = 0
 fps = 30
+width, height = 1200, 728
+# Cell dimension of board
+pad_y = 12
+cell_dim = (height - 2*pad_y)//8
+pad_x = (width - 8*cell_dim) // 2
+# Base Co-ordinates for chess board
+bx, by = pad_x, pad_y
+
 clock = pg.time.Clock()
 
 # Stop all threads var
@@ -384,6 +390,16 @@ class Pawn(Piece):
             moves.append([x-1, y+1])
             
         return moves
+    
+pawn_promo_queen_w = Queen('white')
+pawn_promo_bishop_w = Bishop('white')
+pawn_promo_knight_w = Knight('white')
+pawn_promo_rook_w = Rook('white')
+
+pawn_promo_queen_b = Queen('black')
+pawn_promo_bishop_b = Bishop('black')
+pawn_promo_knight_b = Knight('black')
+pawn_promo_rook_b = Rook('black')
 
 def is_valid_move(sx,sy,ex,ey):
     global board,op_color,my_color
@@ -447,8 +463,30 @@ def is_valid_move(sx,sy,ex,ey):
 
 # Function to move piece from one cell to another
 def move_piece():
-    global sx, sy, ex, ey, board
+    global sx, sy, ex, ey, board, my_color
     if sx == -1 or sy == -1 or ex == -1 or ey == -1:
+        return
+    if board[sx][sy].ptype == 'p' and sx == 1:
+        if my_color == 'black':
+            if ex == 0:
+                board[sx][sy] = pawn_promo_queen_b
+            elif ex == 1:
+                board[sx][sy] = pawn_promo_bishop_b
+            elif ex == 2:
+                board[sx][sy] = pawn_promo_knight_b
+            elif ex == 3:
+                board[sx][sy] = pawn_promo_rook_b
+        else:
+            if ex == 0:
+                board[sx][sy] = pawn_promo_queen_w
+            elif ex == 1:
+                board[sx][sy] = pawn_promo_bishop_w
+            elif ex == 2:
+                board[sx][sy] = pawn_promo_knight_w
+            elif ex == 3:
+                board[sx][sy] = pawn_promo_rook_w
+        board[0][ey] = board[sx][sy]
+        board[sx][sy] = ''
         return
     print(sx, sy, ex, ey)
     board[ex][ey]=board[sx][sy]
@@ -457,7 +495,7 @@ def move_piece():
     
 # Function to move piece from signal of opponents
 def move_piece_from_opponent(sx, sy, ex, ey):
-    global board
+    global board, op_color
     if board[7-sx][7-sy].ptype=='k':
         if ey-sy == 2:
             move_piece_from_opponent(7,7,ex,ey-1)
@@ -467,6 +505,27 @@ def move_piece_from_opponent(sx, sy, ex, ey):
     sy = 7-sy
     ex = 7-ex
     ey = 7-ey
+    if board[sx][sy].ptype == 'p' and sx == 6:
+        ex = 7-ex
+        if op_color == 'black':
+            if ex == 0:
+                board[sx][sy] = pawn_promo_queen_b
+            elif ex == 1:
+                board[sx][sy] = pawn_promo_bishop_b
+            elif ex == 2:
+                board[sx][sy] = pawn_promo_knight_b
+            elif ex == 3:
+                board[sx][sy] = pawn_promo_rook_b
+        else:
+            if ex == 0:
+                board[sx][sy] = pawn_promo_queen_w
+            elif ex == 1:
+                board[sx][sy] = pawn_promo_bishop_w
+            elif ex == 2:
+                board[sx][sy] = pawn_promo_knight_w
+            elif ex == 3:
+                board[sx][sy] = pawn_promo_rook_w
+        ex = 7
     board[ex][ey]=board[sx][sy]
     board[sx][sy]=''
     
@@ -526,7 +585,9 @@ def middle_screen_join():
     
 # Function for welcome screen
 def welcome():
-    global gameWindow, my_color, op_color, my_turn, fps, clock,is_joined
+    global gameWindow, my_color, op_color, my_turn, fps, clock,is_joined, stop_event, stop_broadcast
+    stop_event.clear()
+    stop_broadcast.clear()
     width, height = 1200, 728
     is_joined=False
     # Creating Board
@@ -612,23 +673,10 @@ def pawn_promotion():
     return px
 
 def main():
-    global gameWindow, cell_dim, bx, by, board, piece_selected, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color, win, is_joined, fps, clock
+    global gameWindow, cell_dim, bx, by, board, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color, win, is_joined, fps, clock
     # Game window Dimensions
-    width, height = 1200, 728
     win=0
-    # Cell dimension of board
-    pad_y = 12
-    cell_dim = (height - 2*pad_y)//8
-    pad_x = (width - 8*cell_dim) // 2
     
-        
-    pawn_promo_queen = Queen(my_color)
-    pawn_promo_bishop = Bishop(my_color)
-    pawn_promo_knight = Knight(my_color)
-    pawn_promo_rook = Rook(my_color)
-    
-    # Base Co-ordinates for chess board
-    bx, by = pad_x, pad_y
     
     # Game specific Variables
     game_over = False
@@ -636,14 +684,12 @@ def main():
     # Creating Board
     gameWindow = pg.display.set_mode((width, height))
     board = [['' for i in range(8)] for j in range(8)]
-    
-    opp_valid_moves = [[False for _ in range(8)]*8]
-    
+        
     # Place pieces of opposite color
-    # board[0][0] = Rook(op_color)
-    # board[0][7] = Rook(op_color)
-    # board[0][1] = board[0][6] = Knight(op_color)
-    # board[0][2] = board[0][5] = Bishop(op_color)
+    board[0][0] = Rook(op_color)
+    board[0][7] = Rook(op_color)
+    board[0][1] = board[0][6] = Knight(op_color)
+    board[0][2] = board[0][5] = Bishop(op_color)
     board[0][3] = Queen(op_color)
     board[0][4] = King(op_color)
     if my_color == 'black':
@@ -654,10 +700,10 @@ def main():
         board[1][i] = Pawn(op_color)
         
     # Place pieces of my side color
-    # board[7][0] = Rook(my_color)
-    # board[7][7] = Rook(my_color)
-    # board[7][1] = board[7][6] = Knight(my_color)
-    # board[7][2] = board[7][5] = Bishop(my_color)
+    board[7][0] = Rook(my_color)
+    board[7][7] = Rook(my_color)
+    board[7][1] = board[7][6] = Knight(my_color)
+    board[7][2] = board[7][5] = Bishop(my_color)
     board[7][3] = Queen(my_color)
     board[7][4] = King(my_color)
     if my_color == 'black':
@@ -672,21 +718,6 @@ def main():
     
     # Game loop
     while not game_over:
-        if is_checkmated():
-            sx, sy, ex, ey = 8, 8, 8, 8
-            game_over = True
-            PlayAgainOrQuit()
-            sys.exit(0)
-        if win==1:
-            sx, sy, ex, ey = 9, 9, 9, 9
-            game_over = True
-            PlayAgainOrQuit()
-            sys.exit(0)
-        if win==-1:
-            game_over=True
-            print("stalemate")
-            PlayAgainOrQuit()
-            sys.exit(0)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 game_over = True
@@ -713,19 +744,24 @@ def main():
                         
                     ey = py
                     if board[sx][sy].ptype == 'p' and px == 0:
-                        st = time()
                         pg.draw.rect(gameWindow, (255, 255, 255), (bx + ey*cell_dim, by, cell_dim, 4*cell_dim))
-                        pawn_promo_queen.place(0, ey)
-                        pawn_promo_bishop.place(1, ey)
-                        pawn_promo_knight.place(2, ey)
-                        pawn_promo_rook.place(3, ey)
+                        if my_color == 'black':
+                            pawn_promo_queen_b.place(0, ey)
+                            pawn_promo_bishop_b.place(1, ey)
+                            pawn_promo_knight_b.place(2, ey)
+                            pawn_promo_rook_b.place(3, ey)
+                        else:
+                            pawn_promo_queen_w.place(0, ey)
+                            pawn_promo_bishop_w.place(1, ey)
+                            pawn_promo_knight_w.place(2, ey)
+                            pawn_promo_rook_w.place(3, ey)
                         pg.draw.rect(gameWindow, green, (bx+ ey*cell_dim, by , cell_dim, 4*cell_dim), 5)
                         pg.display.flip()
-                        et = time()
-                        print(et-st)
                         clock.tick(fps)
                         
                         px = pawn_promotion()
+                        print("pawn promo", px)
+                         
                     ex = px
                     if board[sx][sy].ptype == 'k' or board[sx][sy].ptype == 'r':
                         print("Has Moved: ", sx, sy, ex, ey)
@@ -739,9 +775,10 @@ def main():
                             board[ex][ey+1]=board[7][0]
                             board[7][0]=''
 
+                    sleep(0.001) # Giving enough time to thread for sending message
                     move_piece() 
+                    sx, sy, ex, ey = -1, -1, -1, -1
                     
-                    print("1: ", sx, sy, ex, ey)
                     clear_valid_board()
                     if not is_joined:
                         my_color,op_color=op_color,my_color
@@ -788,7 +825,21 @@ def main():
             for j in range(8):
                 if valid_moves_board[i][j]:
                     pg.draw.circle(gameWindow, green, (bx + j*cell_dim + cell_dim//2, by + i*cell_dim + cell_dim//2), 10)
-                    
+        if is_checkmated():
+            sx, sy, ex, ey = 8, 8, 8, 8
+            game_over = True
+            PlayAgainOrQuit()
+            sys.exit(0)
+        if win==1:
+            sx, sy, ex, ey = 9, 9, 9, 9
+            game_over = True
+            PlayAgainOrQuit()
+            sys.exit(0)
+        if win==-1:
+            game_over=True
+            print("stalemate")
+            PlayAgainOrQuit()
+            sys.exit(0)            
         clock.tick(fps)
         pg.display.update()
     pg.quit()
@@ -808,7 +859,6 @@ def PlayAgainOrQuit():
     # pg.init()
     # Game specific Variables
     game_over = False
-    blurred_background = blurSurf(gameWindow,70)
     while not game_over:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -817,30 +867,17 @@ def PlayAgainOrQuit():
             if event.type == pg.MOUSEBUTTONDOWN:
                 mouse_pos = pg.mouse.get_pos()
 
-                play_again_button = pg.Rect(300, 300, 250, 80)
-                quit_button = pg.Rect(700, 300, 250, 80)
+                quit_button = pg.Rect(975, 300, 200, 80)
 
-                if play_again_button.collidepoint(mouse_pos): 
-                    welcome()
+                if quit_button.collidepoint(mouse_pos):
                     pg.quit()
                     sys.exit(0)
-                    # Add your play again logic here
-                elif quit_button.collidepoint(mouse_pos):
-                    pg.quit()
-                    sys.exit(0)
-        gameWindow.fill(white)
 
-        gameWindow.blit(blurred_background,(0,0))
+        quit_button = pg.draw.rect(gameWindow, button_color, (975, 300, 200, 80))
+        result_button = pg.draw.rect(gameWindow, button_color, (975, 200, 200, 80))
 
-        play_again_button = pg.draw.rect(gameWindow, button_color, (300, 300, 250, 80))
-        quit_button = pg.draw.rect(gameWindow, button_color, (700, 300, 250, 80))
-        result_button = pg.draw.rect(gameWindow, button_color, (500, 200, 250, 80))
-
-        play_again_text = font.render("Play Again", True, white)
         quit_text = font.render("Quit", True, white)
 
-        gameWindow.blit(play_again_text, (play_again_button.centerx - play_again_text.get_width() // 2,
-                                    play_again_button.centery - play_again_text.get_height() // 2))
         gameWindow.blit(quit_text, (quit_button.centerx - quit_text.get_width() // 2,
                                 quit_button.centery - quit_text.get_height() // 2))
         result_text=""
