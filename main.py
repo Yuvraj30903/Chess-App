@@ -5,6 +5,7 @@ import socket
 import threading
 import os
 import sys
+from time import time
 
 
 pg.init()
@@ -594,46 +595,13 @@ def pawn_promotion():
     global gameWindow, stop_event, ey, board, cell_dim, bx, by, clock, fps, my_color
     
     game_over = False
-    print("pawn", ey)
-    
-    cell_color = black
-        
-    for i in range(8):
-        for j in range(8):
-            pg.draw.rect(gameWindow, cell_color, [bx + i*cell_dim, by + j*cell_dim, cell_dim, cell_dim])
-            if cell_color == black:
-                cell_color = white
-            else:
-                cell_color = black
-        if cell_color == black:
-            cell_color = white
-        else:
-            cell_color = black
-        
-    # Place pieces
-    for i in range(8):
-        for j in range(8):
-            if i == 0 and j == ey:
-                Queen(my_color).place(i, j)
-            elif i == 1 and j == ey:
-                Bishop(my_color).place(i, j)
-            elif i == 2 and j == ey:
-                Knight(my_color).place(i, j)
-            elif i == 3 and j == ey:
-                Rook(my_color).place(i, j)
-            elif board[i][j] != '':
-                board[i][j].place(i, j)
-                
-
-    # pg.draw.rect(gameWindow, (255, 255, 255), (bx + i*cell_dim, by + j*cell_dim, cell_dim, 4*cell_dim))
-    # pg.draw.rect(gameWindow, green, (bx + i*cell_dim, by + j*cell_dim, cell_dim, 4*cell_dim), 5)
-    print("display update")
     
     while not game_over:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 game_over = True
                 stop_event.set()
+                pg.quit()
                 sys.exit(0)
             if event.type == pg.MOUSEBUTTONDOWN:
                 px = (event.pos[1] - by + cell_dim - 1) // cell_dim - 1
@@ -641,7 +609,6 @@ def pawn_promotion():
                 if py == ey and 0 <= px <= 3:
                     game_over = True
         clock.tick(fps)
-        pg.display.update()
     return px
 
 def main():
@@ -653,6 +620,12 @@ def main():
     pad_y = 12
     cell_dim = (height - 2*pad_y)//8
     pad_x = (width - 8*cell_dim) // 2
+    
+        
+    pawn_promo_queen = Queen(my_color)
+    pawn_promo_bishop = Bishop(my_color)
+    pawn_promo_knight = Knight(my_color)
+    pawn_promo_rook = Rook(my_color)
     
     # Base Co-ordinates for chess board
     bx, by = pad_x, pad_y
@@ -740,8 +713,19 @@ def main():
                         
                     ey = py
                     if board[sx][sy].ptype == 'p' and px == 0:
+                        st = time()
+                        pg.draw.rect(gameWindow, (255, 255, 255), (bx + ey*cell_dim, by, cell_dim, 4*cell_dim))
+                        pawn_promo_queen.place(0, ey)
+                        pawn_promo_bishop.place(1, ey)
+                        pawn_promo_knight.place(2, ey)
+                        pawn_promo_rook.place(3, ey)
+                        pg.draw.rect(gameWindow, green, (bx+ ey*cell_dim, by , cell_dim, 4*cell_dim), 5)
+                        pg.display.flip()
+                        et = time()
+                        print(et-st)
+                        clock.tick(fps)
+                        
                         px = pawn_promotion()
-                        print(board)
                     ex = px
                     if board[sx][sy].ptype == 'k' or board[sx][sy].ptype == 'r':
                         print("Has Moved: ", sx, sy, ex, ey)
