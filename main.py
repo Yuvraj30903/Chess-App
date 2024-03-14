@@ -28,31 +28,32 @@ red = (255, 0, 0)
 button_color = (50, 0, 255)
 
 # Game Specific Variables
-gameWindow = None
-cell_dim = None
-bx, by = None, None
-board = None
-valid_moves_board = None
+gameWindow = None 
+cell_dim = None            # Cell Dimensions
+board = None               # 2-D list for storing information of pieces
+valid_moves_board = None   # 2-D list for showing valid moves with help of green centers
+my_turn = True             # Variable to keep track of turn
 my_color = 'white'
 op_color = 'black'
-my_turn = True
 port = 12345
-is_joined = False
-win = 0
+is_joined = False          # Variable to check if other player has joined game or not
+win = 0                    # Variable to check for win
 fps = 30
 width, height = 1200, 728
+
 # Cell dimension of board
 pad_y = 12
 cell_dim = (height - 2*pad_y)//8
 pad_x = (width - 8*cell_dim) // 2
+
 # Base Co-ordinates for chess board
 bx, by = pad_x, pad_y
 
 clock = pg.time.Clock()
 
-# Stop all threads var
-stop_event = threading.Event()
-stop_broadcast = threading.Event()
+
+stop_event = threading.Event()       # Stop all threads var
+stop_broadcast = threading.Event()   # Event for stopping broadcasting IP after player joined
 
 # Communication Variables
 sx, sy = -1, -1
@@ -127,7 +128,8 @@ def run_server():
             while not stop_event.is_set():
                 client_socket, address = server.accept()
                 print(f"Accepted connection from {address}")
-                stop_broadcast.set()
+                # Connection established now no need to broadcast ip
+                stop_broadcast.set() 
                 is_joined = True
                 flg = True
                 if flg:
@@ -219,7 +221,7 @@ def load_svg(filename):
 
     return resized_surface
 
-
+# Piece class storing information of piece
 class Piece:
     global gameWindow
     def __init__(self, color, ptype, path):
@@ -234,7 +236,7 @@ class Piece:
     def place_transition(self, x, y):
         gameWindow.blit(self.resized_svg_surface, (x,y))
         
-        
+# Class for King piece
 class King(Piece):
     def __init__(self, color):
         super().__init__(color, 'k', f'src/k-{color}.svg')
@@ -275,6 +277,7 @@ class King(Piece):
             moves.append([x, y+2])
         return moves
 
+# Class for Queen piece
 class Queen(Piece):
     global board
     def __init__(self, color):
@@ -297,7 +300,8 @@ class Queen(Piece):
                 cx += dx
                 cy += dy
         return moves
-        
+
+# Class for Bishop Piece        
 class Bishop(Piece):
     global board
     def __init__(self, color):
@@ -322,6 +326,7 @@ class Bishop(Piece):
                 cy += dy
         return moves
         
+# Class for Knight Piece        
 class Knight(Piece):
     global board
     def __init__(self, color):
@@ -342,6 +347,7 @@ class Knight(Piece):
         return moves
         
         
+# Class for Rook Piece        
 class Rook(Piece):
     global board
     def __init__(self, color):
@@ -366,6 +372,7 @@ class Rook(Piece):
                 cy += dy
         return moves
         
+# Class for Pawn Piece        
 class Pawn(Piece):
     global board
     def __init__(self, color):
@@ -391,6 +398,8 @@ class Pawn(Piece):
             
         return moves
     
+# Pre-loading of pawn-promotion UI svgs
+    
 pawn_promo_queen_w = Queen('white')
 pawn_promo_bishop_w = Bishop('white')
 pawn_promo_knight_w = Knight('white')
@@ -401,6 +410,8 @@ pawn_promo_bishop_b = Bishop('black')
 pawn_promo_knight_b = Knight('black')
 pawn_promo_rook_b = Rook('black')
 
+
+# Check if move from start to end is a valid move or not
 def is_valid_move(sx,sy,ex,ey):
     global board,op_color,my_color
     if not( sx==ex and sy==ey):
@@ -466,6 +477,8 @@ def move_piece():
     global sx, sy, ex, ey, board, my_color
     if sx == -1 or sy == -1 or ex == -1 or ey == -1:
         return
+    
+    # If condition to check pawn Prmotion
     if board[sx][sy].ptype == 'p' and sx == 1:
         if my_color == 'black':
             if ex == 0:
@@ -493,18 +506,24 @@ def move_piece():
     board[sx][sy]=''
     sx, sy, ex, ey = -1, -1, -1, -1
     
-# Function to move piece from signal of opponents
+# Function to move piece from message recieved by opponent
 def move_piece_from_opponent(sx, sy, ex, ey):
     global board, op_color
+    
+    # Condition to perform opponents's Castling
     if board[7-sx][7-sy].ptype=='k':
         if ey-sy == 2:
             move_piece_from_opponent(7,7,ex,ey-1)
         elif sy-ey == 2:
             move_piece_from_opponent(7,0,ex,ey+1)
+            
+    # 180 degree rotation in opposite machine
     sx = 7-sx
     sy = 7-sy
     ex = 7-ex
     ey = 7-ey
+    
+    # Perform opponent's Pawn Promotion Move
     if board[sx][sy].ptype == 'p' and sx == 6:
         ex = 7-ex
         if op_color == 'black':
@@ -535,7 +554,7 @@ def clear_valid_board():
         for j in range(8):
             valid_moves_board[i][j] = False
     
-# function which renders text on screen
+# function to render text on screen
 def write(text, x, y):
     global gameWindow
     text = font.render(text, True, green, blue)
@@ -544,14 +563,13 @@ def write(text, x, y):
     textRect.center = (x, y)
     
     gameWindow.blit(text, textRect)
-    
+  
+# Screen for waiting of another player  
 def middle_screen_create():
     global gameWindow, is_joined, fps, clock
     width, height = 1200, 728
     gameWindow = pg.display.set_mode((width, height))
     gameWindow.fill(white)
-    
-    
          
     write("Waiting for a player to join", width//2, height//2)
     while not is_joined:
@@ -563,7 +581,8 @@ def middle_screen_create():
                 exit()
         clock.tick(fps)
         pg.display.update()
-
+        
+# Screen for finding nearby games
 def middle_screen_join():
     global gameWindow, is_joined, port, fps, clock
     width, height = 1200, 728
@@ -590,14 +609,13 @@ def welcome():
     stop_broadcast.clear()
     width, height = 1200, 728
     is_joined=False
-    # Creating Board
+
     gameWindow = pg.display.set_mode((width, height))
     gameWindow.fill(white)
     
     write("Single Device Play (Press S)", width//2, 200)
     write("Create Game - Play White (Press C)", width//2, 350)
     write("Join Game - Play Black (Press J)", width//2, 500)
-    
     
     game_over = False
     while not game_over:
@@ -624,6 +642,8 @@ def welcome():
                     
         clock.tick(fps)
         pg.display.update()
+
+# Function to check if 'my_color' player is checkmated or not
 def is_checkmated():
     global board, my_color, op_color,win
     flg = True
@@ -644,6 +664,8 @@ def is_checkmated():
         win=-1
         flg=False
     return flg
+
+# Flip board by 180 in single device mode
 def flip_board():
     global board
     for i in range(4):
@@ -651,12 +673,14 @@ def flip_board():
             t = board[i][j]
             board[i][j] = board[7-i][7-j]
             board[7-i][7-j] = t
-
+            
+# Funtion which returns type of pawn promotion choosen by player
 def pawn_promotion():
     global gameWindow, stop_event, ey, board, cell_dim, bx, by, clock, fps, my_color
     
     game_over = False
     
+    # Wait until player chooses a type of piece for pawn promotion
     while not game_over:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -728,22 +752,29 @@ def main():
                 if not my_turn:
                     continue
                 
+                # Calulation for co-ordinates of cell from co-ordinates of pixel
                 px = (event.pos[1] - by + cell_dim - 1) // cell_dim - 1
                 py = (event.pos[0] - bx + cell_dim - 1) // cell_dim - 1
                 
-                
+                # If pixel is outside from cell do nothinf
                 if not valid_coordinate(px, py):
                     continue
                 
+                # Click on cell which is not valid move
                 if board[px][py] == '' and not valid_moves_board[px][py]:
                     continue
                 
+                # Click on opponent Piece
                 if (board[px][py] == '' or board[px][py].color != my_color) and valid_moves_board[px][py]:
                     if sx < 0:
                         continue
                         
                     ey = py
+                    
+                    # Check for Pawn Promotion
                     if board[sx][sy].ptype == 'p' and px == 0:
+                        
+                        # UI asking for Pawn Promotion
                         pg.draw.rect(gameWindow, (255, 255, 255), (bx + ey*cell_dim, by, cell_dim, 4*cell_dim))
                         if my_color == 'black':
                             pawn_promo_queen_b.place(0, ey)
@@ -759,14 +790,18 @@ def main():
                         pg.display.flip()
                         clock.tick(fps)
                         
+                        # Wait for player choice
                         px = pawn_promotion()
                         print("pawn promo", px)
                          
                     ex = px
+                    
+                    # If king or rook has moves then mark them moved piece and They can not do castling any longer
                     if board[sx][sy].ptype == 'k' or board[sx][sy].ptype == 'r':
                         print("Has Moved: ", sx, sy, ex, ey)
                         board[sx][sy].has_moved = True 
-                    
+                        
+                    # Perform Castling Moves                    
                     if board[sx][sy].ptype=='k':
                         if ey-sy == 2: 
                             board[ex][ey-1]=board[7][7]
@@ -779,11 +814,15 @@ def main():
                     move_piece() 
                     sx, sy, ex, ey = -1, -1, -1, -1
                     
+                    
+                    # Once piece is moved no need to show green circles therefore clear valid board
                     clear_valid_board()
                     if not is_joined:
+                        # If single device mode rotate board and swap colors
                         my_color,op_color=op_color,my_color
                         flip_board()
-                
+                        
+                # If cell contains 'my_color' piece then change starting co-ordinates                
                 elif board[px][py].color == my_color:
                     sx, sy = px, py    
                     valid_moves = board[px][py].valid_moves(px, py)
@@ -818,28 +857,37 @@ def main():
                 if board[i][j] != '':
                     board[i][j].place(i, j) 
                     
+        # Draw Green square around selected piece                    
         if sx != -1:
             pg.draw.rect(gameWindow, green, (bx + sy*cell_dim, by + sx*cell_dim, cell_dim, cell_dim), 5)
                     
+        # Draw green circles
         for i in range(8):
             for j in range(8):
                 if valid_moves_board[i][j]:
                     pg.draw.circle(gameWindow, green, (bx + j*cell_dim + cell_dim//2, by + i*cell_dim + cell_dim//2), 10)
+                    
+        # Check for checkmate
         if is_checkmated():
             sx, sy, ex, ey = 8, 8, 8, 8
             game_over = True
             PlayAgainOrQuit()
             sys.exit(0)
+            
+        # Check if player has won or not
         if win==1:
             sx, sy, ex, ey = 9, 9, 9, 9
             game_over = True
             PlayAgainOrQuit()
             sys.exit(0)
+            
+        # Check for stalemate
         if win==-1:
             game_over=True
             print("stalemate")
             PlayAgainOrQuit()
-            sys.exit(0)            
+            sys.exit(0)
+                        
         clock.tick(fps)
         pg.display.update()
     pg.quit()
