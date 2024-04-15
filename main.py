@@ -25,7 +25,7 @@ black = (75, 115, 153)
 green = (0, 255, 0)
 blue = (0, 0, 255)
 red = (255, 0, 0)
-button_color = (50, 0, 255)
+button_color = (0, 0, 0)
 
 # Game Specific Variables
 gameWindow = None 
@@ -557,7 +557,7 @@ def clear_valid_board():
 # function to render text on screen
 def write(text, x, y):
     global gameWindow
-    text = font.render(text, True, green, blue)
+    text = font.render(text, True, (255, 255, 255), (0, 0, 0))
     
     textRect = text.get_rect()
     textRect.center = (x, y)
@@ -569,16 +569,27 @@ def middle_screen_create():
     global gameWindow, is_joined, fps, clock
     width, height = 1200, 728
     gameWindow = pg.display.set_mode((width, height))
-    gameWindow.fill(white)
+    gameWindow.fill((0, 0, 0))
+    
+    background_image = pg.image.load(resource_path("src/middle-bg.jpeg")).convert()
+    bg_width, bg_height = background_image.get_rect().size
+
+    # Calculate the position to center the image horizontally
+    bg_x = (width - bg_width) // 2
+    bg_y = 0  # Align at the top of the window
+
+    gameWindow.blit(background_image, (bg_x, bg_y))
+    pg.display.update()
          
-    write("Waiting for a player to join", width//2, height//2)
+    write("Waiting For a player to join", width//2, height//2)
+    
     while not is_joined:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 is_joined = True
                 stop_event.set()
                 pg.quit()
-                exit()
+                sys.exit(0)
         clock.tick(fps)
         pg.display.update()
         
@@ -587,8 +598,16 @@ def middle_screen_join():
     global gameWindow, is_joined, port, fps, clock
     width, height = 1200, 728
     gameWindow = pg.display.set_mode((width, height))
-    gameWindow.fill(white)
-    
+    gameWindow.fill((0, 0, 0))
+    background_image = pg.image.load(resource_path("src/middle-bg.jpeg")).convert()
+    bg_width, bg_height = background_image.get_rect().size
+
+    # Calculate the position to center the image horizontally
+    bg_x = (width - bg_width) // 2
+    bg_y = 0  # Align at the top of the window
+
+    gameWindow.blit(background_image, (bg_x, bg_y))
+    pg.display.update()
     
     write("Finding Nearby Game", width//2, height//2)
              
@@ -598,9 +617,19 @@ def middle_screen_join():
                 is_joined = True
                 stop_event.set()
                 pg.quit()
-                exit()
+                sys.exit(0)
         clock.tick(fps)
         pg.display.update()
+        
+# Function to draw rounded buttons
+def draw_button(x, y, width, height, radius, color, text):
+    global gameWindow
+    rect = pg.Rect(x, y, width, height)
+    pg.draw.rect(gameWindow, color, rect, border_radius=radius)
+    font = pg.font.SysFont(None, 30)
+    text_surface = font.render(text, True, (255, 255, 255))
+    text_rect = text_surface.get_rect(center=rect.center)
+    gameWindow.blit(text_surface, text_rect)
     
 # Function for welcome screen
 def welcome():
@@ -611,34 +640,68 @@ def welcome():
     is_joined=False
 
     gameWindow = pg.display.set_mode((width, height))
-    gameWindow.fill(white)
+    gameWindow.fill((0, 0, 0))
     
-    write("Single Device Play (Press S)", width//2, 200)
-    write("Create Game - Play White (Press C)", width//2, 350)
-    write("Join Game - Play Black (Press J)", width//2, 500)
+    background_image = pg.image.load(resource_path("src/welcome-bg.png")).convert()
+    
+    bg_width, bg_height = background_image.get_rect().size
+
+    # Calculate the position to center the image horizontally
+    bg_x = (width - bg_width) // 2
+    bg_y = 0  # Align at the top of the window
+
+    gameWindow.blit(background_image, (bg_x, bg_y))
+    pg.display.update()
+    
+    button_width = 400
+    button_height = 50
+    button_gap = 20
+    button_start_x = (width - button_width) // 2
+    button_start_y = (height - (button_height * 3 + button_gap * 2)) // 2
+    button_radius = 10
+    
+    button_x = button_start_x
+    button_y = button_start_y
+    draw_button(button_x, button_y, button_width, button_height, button_radius, (0, 0, 0), "Single Device Play")
+    button_y = button_start_y + (button_height + button_gap)
+    draw_button(button_x, button_y, button_width, button_height, button_radius, (0, 0, 0), "Create Game - Play White")
+    button_y = button_start_y + (button_height + button_gap)*2
+    draw_button(button_x, button_y, button_width, button_height, button_radius, (0, 0, 0), "Join Game - Play Black")
+
+    # Update the display
+    pg.display.update()
+    
     
     game_over = False
     while not game_over:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 game_over = True
-            elif event.type == pg.KEYDOWN:
-                if event.key == pg.K_s:
-                    main()
-                    game_over = True
-                if event.key == pg.K_c:
-                    threading.Thread(target=run_server).start()
-                    middle_screen_create()
-                    main()
-                    game_over = True
-                elif event.key == pg.K_j:
-                    my_color = 'black'
-                    op_color = 'white'
-                    my_turn = False
-                    threading.Thread(target=discover_servers).start()
-                    middle_screen_join()
-                    main()
-                    game_over = True
+            elif event.type == pg.MOUSEBUTTONDOWN:
+                mouse_pos = pg.mouse.get_pos()
+                # Check if any button is clicked
+                for i in range(3):
+                    button_x = button_start_x
+                    button_y = button_start_y + (button_height + button_gap) * i
+                    if button_x <= mouse_pos[0] <= button_x + button_width and \
+                    button_y <= mouse_pos[1] <= button_y + button_height:
+                        if i == 0:
+                            main()
+                            game_over = True
+                        elif i == 1:
+                            threading.Thread(target=run_server).start()
+                            middle_screen_create()
+                            main()
+                            game_over = True
+                        else:
+                            my_color = 'black'
+                            op_color = 'white'
+                            my_turn = False
+                            threading.Thread(target=discover_servers).start()
+                            middle_screen_join()
+                            main()
+                            game_over = True
+                    
                     
         clock.tick(fps)
         pg.display.update()
@@ -700,7 +763,6 @@ def main():
     global gameWindow, cell_dim, bx, by, board, valid_moves_board, sx, sy, ex, ey, stop_event, opp_valid_moves,my_color,op_color, win, is_joined, fps, clock
     # Game window Dimensions
     win=0
-    
     
     # Game specific Variables
     game_over = False
@@ -906,16 +968,16 @@ def PlayAgainOrQuit():
             if event.type == pg.MOUSEBUTTONDOWN:
                 mouse_pos = pg.mouse.get_pos()
 
-                quit_button = pg.Rect(975, 300, 200, 80)
+                quit_button = pg.Rect(975, 375, 200, 80)
 
                 if quit_button.collidepoint(mouse_pos):
                     pg.quit()
                     sys.exit(0)
 
-        quit_button = pg.draw.rect(gameWindow, button_color, (975, 300, 200, 80))
-        result_button = pg.draw.rect(gameWindow, button_color, (975, 200, 200, 80))
+        quit_button = pg.draw.rect(gameWindow, button_color, (975, 375, 200, 80))
+        result_button = pg.draw.rect(gameWindow, button_color, (975, 275, 200, 80))
 
-        quit_text = font.render("Quit", True, white)
+        quit_text = font.render("Quit", True, (255, 255, 255))
 
         gameWindow.blit(quit_text, (quit_button.centerx - quit_text.get_width() // 2,
                                 quit_button.centery - quit_text.get_height() // 2))
@@ -934,7 +996,7 @@ def PlayAgainOrQuit():
                 result_text = "You lose"
             elif win == -1:
                 result_text = "Stalemate"
-        result_text = font.render(result_text, True, white)
+        result_text = font.render(result_text, True, (255, 255, 255))
         gameWindow.blit(result_text, (result_button.centerx - result_text.get_width() // 2,
                                 result_button.centery - result_text.get_height() // 2))
  
