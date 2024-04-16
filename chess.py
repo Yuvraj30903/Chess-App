@@ -42,6 +42,7 @@ fps = 30
 display_info = pg.display.Info()
 width, height = int(display_info.current_w*0.8), int(display_info.current_h*0.8)
 
+
 # Cell dimension of board
 pad_y = 12
 cell_dim = (height - 2*pad_y)//8
