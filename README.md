@@ -25,7 +25,8 @@ Player who created game will play as white.
 - **Cairosvg**: Create Chess token (pawn, rook, etc.) from svg
 - **Socket**: For interaction between 2 devices in Dual device mode
 - **Threading**: Run GUI update and socket communication simultaneously
-- **OS, SYS, Time**: Helps in handeling Threding and GUI updates.
+- **OS, SYS, Time**: Helps in handeling Threding and GUI updates
+- **Pyinstaller**: This is an external module which is not used in code but used for creating exe file
 
 # Getting Started
 
@@ -33,16 +34,16 @@ There are 2 methods to install this application.
 
 ## Method 1
 
-You can Install chess.exe file provided here in both device.
+You can Download Executable file from [here](https://drive.google.com/file/d/1pixLO1P9QhY0QlVw1gt_I4BEjlln__Bp/view?usp=drive_link).
 
 But you need to provide some permission to play game.
 
-## Method 2 (No permission required)
+## Method 2
 
 
 ### Prerequisites
 
-- Python 3.x
+- Python 3.0 or above
 
 ### Installation
 
