@@ -3,3 +3,6 @@ cairosvg
 io
 socket
 threading
+os
+sys
+time

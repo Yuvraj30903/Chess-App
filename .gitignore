@@ -1,4 +1,4 @@
 debug/
 build
 dist
-main.spec
+*.spec
