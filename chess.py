@@ -39,7 +39,8 @@ port = 12345
 is_joined = False          # Variable to check if other player has joined game or not
 win = 0                    # Variable to check for win
 fps = 30
-width, height = 1200, 728
+display_info = pg.display.Info()
+width, height = int(display_info.current_w*0.8), int(display_info.current_h*0.8)
 
 # Cell dimension of board
 pad_y = 12
@@ -566,12 +567,13 @@ def write(text, x, y):
   
 # Screen for waiting of another player  
 def middle_screen_create():
-    global gameWindow, is_joined, fps, clock
-    width, height = 1200, 728
+    global gameWindow, is_joined, fps, clock, width, height
     gameWindow = pg.display.set_mode((width, height))
     gameWindow.fill((0, 0, 0))
+    pg.display.set_caption('Chess Game')
     
     background_image = pg.image.load(resource_path("src/middle-bg.jpeg")).convert()
+    background_image = pg.transform.scale(background_image, (height, height))
     bg_width, bg_height = background_image.get_rect().size
 
     # Calculate the position to center the image horizontally
@@ -595,11 +597,13 @@ def middle_screen_create():
         
 # Screen for finding nearby games
 def middle_screen_join():
-    global gameWindow, is_joined, port, fps, clock
-    width, height = 1200, 728
+    global gameWindow, is_joined, port, fps, clock, width, height
     gameWindow = pg.display.set_mode((width, height))
     gameWindow.fill((0, 0, 0))
+    pg.display.set_caption('Chess Game')
+    
     background_image = pg.image.load(resource_path("src/middle-bg.jpeg")).convert()
+    background_image = pg.transform.scale(background_image, (height, height))
     bg_width, bg_height = background_image.get_rect().size
 
     # Calculate the position to center the image horizontally
@@ -633,16 +637,17 @@ def draw_button(x, y, width, height, radius, color, text):
     
 # Function for welcome screen
 def welcome():
-    global gameWindow, my_color, op_color, my_turn, fps, clock,is_joined, stop_event, stop_broadcast
+    global gameWindow, my_color, op_color, my_turn, fps, clock,is_joined, stop_event, stop_broadcast, width, height
     stop_event.clear()
     stop_broadcast.clear()
-    width, height = 1200, 728
     is_joined=False
 
     gameWindow = pg.display.set_mode((width, height))
+    pg.display.set_caption('Chess Game')
     gameWindow.fill((0, 0, 0))
     
     background_image = pg.image.load(resource_path("src/welcome-bg.png")).convert()
+    background_image = pg.transform.scale(background_image, (width, height))
     
     bg_width, bg_height = background_image.get_rect().size
 
@@ -955,10 +960,43 @@ def main():
     pg.quit()
 
 def PlayAgainOrQuit():
-    global win, clock, is_joined, gameWindow
-    width, height = 1200, 728
-    # pg.init()
+    global win, clock, is_joined, gameWindow, width, height, bx, by
+
     # Game specific Variables
+    bx = bx//2
+    cell_color = black
+    
+    gameWindow.fill(background)
+    pg.display.update()
+    
+    for i in range(8):
+        for j in range(8):
+            pg.draw.rect(gameWindow, cell_color, [bx + i*cell_dim, by + j*cell_dim, cell_dim, cell_dim])
+            if cell_color == black:
+                cell_color = white
+            else:
+                cell_color = black
+        if cell_color == black:
+            cell_color = white
+        else:
+            cell_color = black
+        
+    # Place pieces
+    for i in range(8):
+        for j in range(8):
+            if board[i][j] != '':
+                board[i][j].place(i, j)
+                
+    button_width = 210
+    button_height = 80
+    
+    button_gap = int(height*0.05)
+    
+    button_pad_x = (width - (bx + 8*cell_dim) - button_width) // 2
+    
+    button_start_x = bx + 8*cell_dim + button_pad_x
+    button_start_y = (height - 2*button_height - button_gap) // 2
+    
     game_over = False
     while not game_over:
         for event in pg.event.get():
@@ -968,14 +1006,14 @@ def PlayAgainOrQuit():
             if event.type == pg.MOUSEBUTTONDOWN:
                 mouse_pos = pg.mouse.get_pos()
 
-                quit_button = pg.Rect(975, 375, 200, 80)
+                quit_button = pg.Rect(button_start_x, button_start_y + button_height + button_gap, button_width, button_height)
 
                 if quit_button.collidepoint(mouse_pos):
                     pg.quit()
                     sys.exit(0)
 
-        quit_button = pg.draw.rect(gameWindow, button_color, (975, 375, 200, 80))
-        result_button = pg.draw.rect(gameWindow, button_color, (975, 275, 200, 80))
+        result_button = pg.draw.rect(gameWindow, button_color, (button_start_x, button_start_y, button_width, button_height))
+        quit_button = pg.draw.rect(gameWindow, button_color, (button_start_x, button_start_y + button_height + button_gap, button_width, button_height))
 
         quit_text = font.render("Quit", True, (255, 255, 255))
 
